@@ -11,5 +11,5 @@ The following RPM's are generated:
  - umplayer-lang
  - umplayer-themes
 
-The RPMS can be found in the ~/rpmbuild/RPMS/`uname -m`/ directory. An SRPM for
+The RPM's can be found in the ~/rpmbuild/RPMS/`uname -m`/ directory. An SRPM for
 the build SVN revision can be found in the ~/rpmbuild/SRPMS/ directory.

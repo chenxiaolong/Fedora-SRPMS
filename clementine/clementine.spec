@@ -18,16 +18,17 @@ BuildRequires:  gmock-devel
 BuildRequires:  gstreamer-devel
 BuildRequires:  gstreamer-plugins-base-devel
 BuildRequires:  gtest-devel
+BuildRequires:  libcdio-devel
 BuildRequires:  libechonest-devel
 BuildRequires:  libgpod-devel
 BuildRequires:  libimobiledevice-devel
 BuildRequires:  liblastfm-devel
 BuildRequires:  libmtp-devel
-#BuildRequires:  libnotify-devel
+BuildRequires:  libnotify-devel
 BuildRequires:  libplist-devel
 BuildRequires:  libprojectM-devel
 BuildRequires:  libqxt-devel
-#BuildRequires:  notification-daemon
+BuildRequires:  notification-daemon
 BuildRequires:  protobuf-devel
 BuildRequires:  qca2-devel
 BuildRequires:  qjson-devel
@@ -39,31 +40,9 @@ BuildRequires:  qtsingleapplication-devel
 BuildRequires:  sqlite-devel
 BuildRequires:  taglib-devel
 BuildRequires:  usbmuxd-devel
-#BuildRequires:  xorg-x11-server-Xvfb
-#BuildRequires:  xorg-x11-xauth
-
-#BuildRequires:  gcc-c++
-#BuildRequires:  protobuf-compiler libcdio-devel
 
 # Spotify support
-BuildRequires:  libspotify
-
-#Requires:       protobuf-lite qjson qca-ossl
-
-# GStreamer codec dependencies
-#Requires:       gstreamer-plugins-ugly
-
-#% ifarch x86_64
-#Requires:       gstreamer0.10(decoder-audio/x-vorbis)(x86_64)
-#Requires:       gstreamer0.10(decoder-audio/x-flac)(x86_64)
-#Requires:       gstreamer0.10(decoder-audio/x-speex)(x86_64)
-#Requires:       gstreamer0.10(decoder-audio/x-wav)(x86_64)
-#% else
-#Requires:       gstreamer0.10(decoder-audio/x-vorbis)
-#Requires:       gstreamer0.10(decoder-audio/x-flac)
-#Requires:       gstreamer0.10(decoder-audio/x-speex)
-#Requires:       gstreamer0.10(decoder-audio/x-wav)
-#% endif
+BuildRequires:  libspotify-devel
 
 %description
 Clementine is a modern music player and library organiser.
@@ -111,12 +90,21 @@ CFLAGS="${CFLAGS} -fPIC" make %{?_smp_mflags}
 
 %install
 cd bin
+
 # Gigantic sed line I originally wrote for the clementine-git package in the
-# Arch Linux AUR, but also works here
+# Arch Linux AUR, but also works here. It fixes the spotify binary installation.
 sed -i -e '/"\/.*version[[:digit:]]*[-]*[[:digit:]]*bit/ s//"${CMAKE_INSTALL_PREFIX}\/bin/' -e '/clementine-spotifyblob/ s/$ENV{DESTDIR}//g' spotifyblob/blob/cmake_install.cmake
+
 make install DESTDIR=$RPM_BUILD_ROOT
+
+# Make spotify blob executable
 chmod +x $RPM_BUILD_ROOT/usr/bin/blob
-sed -i 's/\(\[Pause Shortcut Group\]\) /\1/' $RPM_BUILD_ROOT/usr/share/applications/clementine.desktop
+
+# Fix trailing space in the desktop file
+sed -i 's/\(\[Pause Shortcut Group\]\) /\1/' $RPM_BUILD_ROOT%{_datadir}/applications/clementine.desktop
+
+# Desktop file validation will fail because of the Unity quicklist groups
+desktop-file-validate $RPM_BUILD_ROOT%{_datadir}/applications/clementine.desktop || true
 
 
 %clean

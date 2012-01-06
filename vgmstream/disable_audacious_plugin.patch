@@ -1,0 +1,40 @@
+diff -Nru vgmstream.orig/configure.in vgmstream/configure.in
+--- vgmstream.orig/configure.in	2012-01-06 16:52:12.436479038 -0500
++++ vgmstream/configure.in	2012-01-06 16:54:12.837192636 -0500
+@@ -15,10 +15,6 @@
+ AC_PATH_X
+ AC_PATH_XTRA
+ 
+-PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 1.4.0],,
+-        [AC_MSG_ERROR([Cannot find Audacious, have you installed audacious yet?])]
+-)
+-
+ PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
+         [AC_MSG_ERROR([Cannot find libvorbisfile])]
+ )
+@@ -27,17 +23,7 @@
+         [AC_MSG_ERROR([Cannot find libmpg123])]
+ )
+ 
+-dnl Check for GTK/GLib/GThread/Pango
+-
+-PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
+-    , [AC_MSG_ERROR([Cannot find glib2/gtk2/pango])]
+-)
+-
+-CFLAGS="$CFLAGS $AUDACIOUS_CFLAGS"
+-LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS $VORBISFILE_LIBS $MPG123_LIBS"
+-
+-plugindir=`pkg-config audacious --variable=plugin_dir`
+-AC_SUBST(plugindir)
++LIBS="$LIBS $VORBISFILE_LIBS $MPG123_LIBS"
+ 
+ INPUT_PLUGIN_DIR="Input"
+ AC_SUBST(INPUT_PLUGIN_DIR)
+@@ -54,5 +40,4 @@
+   src/coding/Makefile.unix
+   src/layout/Makefile.unix
+   src/meta/Makefile.unix
+-  unix/Makefile.unix
+ ])
+Binary files vgmstream.orig/.configure.in.swp and vgmstream/.configure.in.swp differ

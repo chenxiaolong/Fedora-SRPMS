@@ -111,8 +111,8 @@ install -dm755 $RPM_BUILD_ROOT%{_bindir}/
 
 # Libraries
 install -dm755 $RPM_BUILD_ROOT%{_libdir}/
-install -dm755 $RPM_BUILD_ROOT%{_jnidir}/i2p/
-  install -m644 pkg-temp/lib/*.jar $RPM_BUILD_ROOT%{_jnidir}/i2p/
+install -dm755 $RPM_BUILD_ROOT%{_javadir}/i2p/
+  install -m644 pkg-temp/lib/*.jar $RPM_BUILD_ROOT%{_javadir}/i2p/
   install -m755 core/c/jbigi/libjbigi.so $RPM_BUILD_ROOT%{_libdir}/
   install -m755 core/c/jcpuid/lib/freenet/support/CPUInformation/libjcpuid-*-linux.so $RPM_BUILD_ROOT%{_libdir}/libjcpuid.so
 
@@ -217,9 +217,6 @@ fi
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-ant distclean
-rm apps/jetty/jetty-*.tgz
-rm core/c/jbigi/*.[s]o
 
 
 %files router
@@ -235,7 +232,7 @@ rm core/c/jbigi/*.[s]o
 %{_mandir}/man1/i2prouter.1.gz
 %{_mandir}/man1/eepget.1.gz
 %attr(755,i2p,i2p) %{_datadir}/i2p/
-%{_jnidir}/i2p/
+%{_javadir}/i2p/
 %{_unitdir}/i2prouter.service
 
 

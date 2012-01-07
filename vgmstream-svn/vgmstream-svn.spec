@@ -1,4 +1,4 @@
-%define _svn_rev @SVN_REV@
+%define _svn_rev _SVN_REV_
 
 Name:		vgmstream-svn
 Version:	0

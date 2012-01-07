@@ -59,8 +59,6 @@ popd
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-cd src
-make clean
 
 
 %files

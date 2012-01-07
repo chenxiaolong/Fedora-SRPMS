@@ -108,8 +108,7 @@ desktop-file-validate $RPM_BUILD_ROOT%{_datadir}/applications/clementine.desktop
 
 
 %clean
-cd bin
-make clean
+rm -rf $RPM_BUILD_ROOT
 
 
 %files

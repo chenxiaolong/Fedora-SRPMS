@@ -181,19 +181,19 @@ install -dm755 $RPM_BUILD_ROOT%{_unitdir}
 install -m644 %{SOURCE2} $RPM_BUILD_ROOT%{_unitdir}
 
 
-%pre
+%pre router
 getent group i2p >/dev/null || groupadd --system i2p
 getent passwd i2p >/dev/null || useradd --system --gid i2p -d /dev/null -s /sbin/nologin -c "Account used by the i2p package to run the daemon" i2p
 
 
-%post
+%post router
 if [ $1 -eq 1 ]; then
   # Initial installation
   /bin/systemctl daemon-reload >/dev/null 2>&1 || ;
 fi
 
 
-%preun
+%preun router
 if [ $1 -eq 0 ]; then
   # Remove, not upgrade
   /bin/systemctl --no-reload disable i2prouter.service >/dev/null 2>&1 || ;
@@ -201,7 +201,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 
-%postun
+%postun router
 /bin/systemctl daemon-reload >/dev/null 2>&1 || ;
 if [ $1 -ge 1 ]; then
   # Upgrade, not remove

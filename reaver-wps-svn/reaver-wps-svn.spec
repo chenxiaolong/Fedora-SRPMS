@@ -11,7 +11,7 @@ URL:		http://hcs64.com/vgmstream.html
 Source0:	reaver-wps-%{_svn_rev}svn.tar.xz
 
 Provides:	reaver-wps
-Conflicts:	reaver-wps
+Obsoletes:	reaver-wps
 BuildRequires:	libpcap-devel
 
 

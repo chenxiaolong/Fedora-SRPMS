@@ -189,23 +189,23 @@ getent passwd i2p >/dev/null || useradd --system --gid i2p -d /dev/null -s /sbin
 %post router
 if [ $1 -eq 1 ]; then
   # Initial installation
-  /bin/systemctl daemon-reload >/dev/null 2>&1 || ;
+  /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
 
 %preun router
 if [ $1 -eq 0 ]; then
   # Remove, not upgrade
-  /bin/systemctl --no-reload disable i2prouter.service >/dev/null 2>&1 || ;
-  /bin/systemctl stop i2prouter.service >/dev/null 2>&1 || ;
+  /bin/systemctl --no-reload disable i2prouter.service >/dev/null 2>&1 || :
+  /bin/systemctl stop i2prouter.service >/dev/null 2>&1 || :
 fi
 
 
 %postun router
-/bin/systemctl daemon-reload >/dev/null 2>&1 || ;
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ]; then
   # Upgrade, not remove
-  /bin/systemctl try-restart i2prouter.service >/dev/null 2>&1 || ;
+  /bin/systemctl try-restart i2prouter.service >/dev/null 2>&1 || :
 fi
 
 

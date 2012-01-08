@@ -156,6 +156,11 @@ install -dm755 $RPM_BUILD_ROOT%{_sysconfdir}/i2p/
 mkdir pkg-temp/examples/
 cp -rv pkg-temp/scripts/ pkg-temp/examples/
 
+# Documentation
+pushd pkg-temp/docs
+find . -type f -exec install -Dm644 {} $RPM_BUILD_ROOT%{_javadocdir}/i2p/{} \;
+popd
+
 # Symlink the jar libraries
 ln -s %{_libdir}/java/i2p $RPM_BUILD_ROOT%{_datadir}/i2p/lib
 
@@ -234,12 +239,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,i2p,i2p) %{_datadir}/i2p/
 %{_javadir}/i2p/
 %{_unitdir}/i2prouter.service
+%doc pkg-temp/docs/*
 
 
 %files javadoc
 %defattr(-,root,root,-)
-%doc build/javadoc/
-%doc pkg-temp/docs/
+%{_javadocdir}/i2p/
 
 
 %files -n libjbigi-java

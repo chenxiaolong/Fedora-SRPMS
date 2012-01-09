@@ -236,7 +236,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/eepget
 %{_mandir}/man1/i2prouter.1.gz
 %{_mandir}/man1/eepget.1.gz
-%attr(755,i2p,i2p) %{_datadir}/i2p/
+%attr(0755,i2p,i2p) %{_datadir}/i2p/
 %{_javadir}/i2p/
 %{_unitdir}/i2prouter.service
 %doc pkg-temp/docs/*

@@ -100,6 +100,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Make spotify blob executable
 chmod +x $RPM_BUILD_ROOT/usr/bin/blob
 
+# Work around this bug: http://code.google.com/p/clementine-player/issues/detail?id=2088
+sed -i 's/\(Exec=\).*$/\1env __GL_NO_DSO_FINALIZER=1 clementine/g' $RPM_BUILD_ROOT%{_datadir}/clementine.desktop
+
 # Fix trailing space in the desktop file
 sed -i 's/\(\[Pause Shortcut Group\]\) /\1/' $RPM_BUILD_ROOT%{_datadir}/applications/clementine.desktop
 

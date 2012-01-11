@@ -162,7 +162,7 @@ find . -type f -exec install -Dm644 {} $RPM_BUILD_ROOT%{_javadocdir}/i2p/{} \;
 popd
 
 # Symlink the jar libraries
-ln -s %{_libdir}/java/i2p $RPM_BUILD_ROOT%{_datadir}/i2p/lib
+ln -s %{_javadir}/i2p $RPM_BUILD_ROOT%{_datadir}/i2p/lib
 
 # Fix paths
 sed -i \
@@ -170,7 +170,11 @@ sed -i \
   -e 's|\%SYSTEM_java_io_tmpdir|/tmp|g' \
   $RPM_BUILD_ROOT%{_bindir}/i2prouter \
   $RPM_BUILD_ROOT%{_bindir}/i2prouter-nowrapper \
-  $RPM_BUILD_ROOT%{_bindir}/eepget \
+  $RPM_BUILD_ROOT%{_bindir}/eepget
+sed -i \
+  -e 's|\$INSTALL_PATH|%{_datadir}/i2p|g' \
+  -e 's|\$SYSTEM_java_io_tmpdir|/tmp|g' \
+  -e '/wrapper.java.library.path.2=\/usr\/share\/i2p\/lib/ a wrapper.java.library.path.3=/usr/lib/java-service-wrapper\nwrapper.java.library.path.4=/usr/lib64/java-service-wrapper' \
   $RPM_BUILD_ROOT%{_datadir}/i2p/wrapper.config
 
 # Fix line endings
@@ -184,6 +188,9 @@ popd
 # Install systemd service
 install -dm755 $RPM_BUILD_ROOT%{_unitdir}
 install -m644 %{SOURCE2} $RPM_BUILD_ROOT%{_unitdir}
+
+# Symlink Java service wrapper
+ln -s %{_sbindir}/java-service-wrapper $RPM_BUILD_ROOT%{_datadir}/i2p/i2psvc
 
 
 %pre router

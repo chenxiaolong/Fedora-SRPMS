@@ -13,6 +13,7 @@ Source0:	reaver-wps-%{_svn_rev}svn.tar.xz
 Provides:	reaver-wps
 Obsoletes:	reaver-wps
 BuildRequires:	libpcap-devel
+BuildRequires:	sqlite-devel
 
 
 %description
@@ -44,7 +45,7 @@ pushd src
 # Binaries
 install -dm755 "$RPM_BUILD_ROOT%{_bindir}"
 install -m755 reaver "$RPM_BUILD_ROOT%{_bindir}"
-install -m755 walsh "$RPM_BUILD_ROOT%{_bindir}"
+install -m755 wash "$RPM_BUILD_ROOT%{_bindir}"
 # Configuration
 install -dm755 "$RPM_BUILD_ROOT%{_sysconfdir}/reaver/"
 install -m644 reaver.db "$RPM_BUILD_ROOT%{_sysconfdir}/reaver/"
@@ -66,11 +67,15 @@ rm -rf $RPM_BUILD_ROOT
 %doc docs/LICENSE
 %doc docs/README
 %{_bindir}/reaver
-%{_bindir}/walsh
+%{_bindir}/wash
 %config(noreplace) %{_sysconfdir}/reaver/reaver.db
 %{_mandir}/man1/reaver.1.gz
 
 
 %changelog
+* Mon Feb 6 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0-1
+- Rename walsh to wash to reflect upstream changes
+- Add sqlite-devel to the build dependencies
+
 * Sat Jan 7 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0-1
 - SVN Package initial release

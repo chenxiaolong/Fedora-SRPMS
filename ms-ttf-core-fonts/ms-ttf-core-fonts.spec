@@ -1,6 +1,6 @@
-%global fontname mscore
+%global fontname ms-ttf-core
 
-Name:		mscore-fonts
+Name:		ms-ttf-core-fonts
 Version:	1.0
 Release:	1%{?dist}
 Summary:	Installer for the Microsoft TrueType core fonts

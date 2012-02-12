@@ -71,11 +71,11 @@ find . -type f ! -name '*.ttf' -delete
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -dm755 "$RPM_BUILD_ROOT/%{_fontdir}/"
-install -m644 *.ttf "$RPM_BUILD_ROOT/%{_fontdir}/"
+install -dm755 "$RPM_BUILD_ROOT%{_fontdir}/"
+install -m644 *.ttf "$RPM_BUILD_ROOT%{_fontdir}/"
 
 
-%_font_pkg *.ttf
+%_font_pkg -n mscore-fonts *.ttf
 
 
 %changelog

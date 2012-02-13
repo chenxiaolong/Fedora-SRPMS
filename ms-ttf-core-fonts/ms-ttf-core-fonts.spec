@@ -75,7 +75,7 @@ install -dm755 "$RPM_BUILD_ROOT%{_fontdir}/"
 install -m644 *.ttf "$RPM_BUILD_ROOT%{_fontdir}/"
 
 
-%_font_pkg -n mscore-fonts *.ttf
+%_font_pkg -n ms-ttf-core-fonts *.ttf
 
 
 %changelog

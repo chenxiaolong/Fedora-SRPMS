@@ -1,0 +1,101 @@
+Change the path to the Java applet to a more appropriate directory:
+/usr/share/turbovnc/classes.
+
+diff -Nru vnc_unixsrc.orig/classes/README vnc_unixsrc/classes/README
+--- vnc_unixsrc.orig/classes/README	2012-02-22 23:07:05.130259196 -0500
++++ vnc_unixsrc/classes/README	2012-02-22 23:09:43.116941186 -0500
+@@ -52,10 +52,10 @@
+      The Unix TurboVNC Server (Xvnc.turbo) is able to serve up any set of files
+      which are present in a particular directory, which is determined by the
+      -httpd argument to Xvnc.turbo.  In the default version of the
+-     vncserver.turbo script, this argument is set to ../vnc/classes, relative to
+-     the directory containing the vncserver.turbo script.  Thus, one can easily
+-     deploy a modified version of the Java TurboVNC Viewer by simply copying a
+-     new JAR file to this directory.
++     vncserver.turbo script, this argument is set to ../share/turbovnc/classes,
++     relative to the directory containing the vncserver.turbo script.  Thus, one
++     can easily deploy a modified version of the Java TurboVNC Viewer by simply
++     copying a new JAR file to this directory.
+ 
+      The Windows TurboVNC Server (WinVNC) embeds the JAR file inside of its
+      executable, so deploying a modified version of the Java TurboVNC Viewer
+diff -Nru vnc_unixsrc.orig/Makefile.am vnc_unixsrc/Makefile.am
+--- vnc_unixsrc.orig/Makefile.am	2012-02-22 23:07:05.130259196 -0500
++++ vnc_unixsrc/Makefile.am	2012-02-22 23:11:31.222367069 -0500
+@@ -46,10 +46,10 @@
+ 	$(INSTALL) -m 644 $(srcdir)/vncserver.man $(DESTDIR)/$(mandir)/man1/vncserver.1
+ 	$(INSTALL) -m 644 $(srcdir)/Xvnc/programs/Xserver/Xvnc.man $(DESTDIR)/$(mandir)/man1/Xvnc.1
+ 	$(INSTALL) -m 644 $(srcdir)/Xvnc/programs/Xserver/Xserver.man $(DESTDIR)/$(mandir)/man1/Xserver.1
+-	mkdir -p $(DESTDIR)/$(prefix)/vnc/classes/
+-	$(INSTALL) -m 644 $(srcdir)/classes/index.vnc $(DESTDIR)/$(prefix)/vnc/classes/
+-	$(INSTALL) -m 644 $(srcdir)/classes/VncViewer.jar $(DESTDIR)/$(prefix)/vnc/classes/
+-	$(INSTALL) -m 644 $(srcdir)/classes/README $(DESTDIR)/$(prefix)/vnc/classes/
++	mkdir -p $(DESTDIR)/$(prefix)/share/turbovnc/classes/
++	$(INSTALL) -m 644 $(srcdir)/classes/index.vnc $(DESTDIR)/$(prefix)/share/turbovnc/classes/
++	$(INSTALL) -m 644 $(srcdir)/classes/VncViewer.jar $(DESTDIR)/$(prefix)/share/turbovnc/classes/
++	$(INSTALL) -m 644 $(srcdir)/classes/README $(DESTDIR)/$(prefix)/share/turbovnc/classes/
+ 	mkdir -p $(DESTDIR)/$(sysconfdir)/
+ 	$(INSTALL) -m 644 $(srcdir)/turbovncserver.conf $(DESTDIR)/$(sysconfdir)/
+ 	$(INSTALL) -m 644 $(srcdir)/turbovncserver-auth.conf $(DESTDIR)/$(sysconfdir)/
+@@ -60,11 +60,11 @@
+ 	rm -f $(DESTDIR)/$(mandir)/man1/vncserver.1
+ 	rm -f $(DESTDIR)/$(mandir)/man1/Xvnc.1
+ 	rm -f $(DESTDIR)/$(mandir)/man1/Xserver.1
+-	rm -f $(DESTDIR)/$(prefix)/vnc/classes/index.vnc
+-	rm -f $(DESTDIR)/$(prefix)/vnc/classes/VncViewer.jar
+-	rm -f $(DESTDIR)/$(prefix)/vnc/classes/README
+-	rmdir $(DESTDIR)/$(prefix)/vnc/classes/
+-	rmdir $(DESTDIR)/$(prefix)/vnc/
++	rm -f $(DESTDIR)/$(prefix)/share/turbovnc/classes/index.vnc
++	rm -f $(DESTDIR)/$(prefix)/share/turbovnc/classes/VncViewer.jar
++	rm -f $(DESTDIR)/$(prefix)/share/turbovnc/classes/README
++	rmdir $(DESTDIR)/$(prefix)/share/turbovnc/classes/
++	rmdir $(DESTDIR)/$(prefix)/share/turbovnc/
+ 	rm -f $(DESTDIR)/$(sysconfdir)/turbovncserver.conf
+ 	rm -f $(DESTDIR)/$(sysconfdir)/turbovncserver-auth.conf
+ 
+diff -Nru vnc_unixsrc.orig/README vnc_unixsrc/README
+--- vnc_unixsrc.orig/README	2012-02-22 23:07:05.130259196 -0500
++++ vnc_unixsrc/README	2012-02-22 23:09:01.477024997 -0500
+@@ -54,7 +54,7 @@
+    to edit the "#!/usr/bin/perl" first line of vncserver.turbo.
+ 
+  * $vncClasses - this specifies the location of the Java classes for
+-   the VNC viewer applet.  The default is /usr/local/vnc/classes.
++   the VNC viewer applet.  The default is /usr/share/turbovnc/classes.
+ 
+  * Xvnc.turbo's font path and color database.  If you have an installation of
+    X which is not in the standard place you may need to add arguments to the
+diff -Nru vnc_unixsrc.orig/turbovncserver.conf vnc_unixsrc/turbovncserver.conf
+--- vnc_unixsrc.orig/turbovncserver.conf	2012-02-22 23:07:05.133259190 -0500
++++ vnc_unixsrc/turbovncserver.conf	2012-02-22 23:12:16.813270003 -0500
+@@ -28,7 +28,7 @@
+ # $geometry = "1240x900";
+ # $depth = 24;
+ # $desktopName = "X";
+-# $vncClasses = "/usr/local/vnc/classes";
++# $vncClasses = "/usr/share/turbovnc/classes";
+ # $vncUserDir = "$ENV{HOME}/.vnc";
+ # $fontPath = "";
+ # $authType = "-rfbauth $vncUserDir/passwd -otpauth -pamauth";
+diff -Nru vnc_unixsrc.orig/vncserver.in vnc_unixsrc/vncserver.in
+--- vnc_unixsrc.orig/vncserver.in	2012-02-22 23:07:05.138259180 -0500
++++ vnc_unixsrc/vncserver.in	2012-02-22 23:10:41.439473065 -0500
+@@ -864,7 +864,7 @@
+ 	foreach $cmd ("Xvnc.turbo","vncpasswd.turbo") {
+ 	    for (split(/:/,$ENV{PATH})) {
+ 		if (-x "$_/$cmd") {
+-		    $vncClasses = "$_/../vnc/classes";
++		    $vncClasses = "$_/../share/turbovnc/classes";
+ 		    next cmd2;
+ 		}
+ 	    }
+@@ -876,7 +876,7 @@
+ 	foreach $cmd ($exedir."Xvnc.turbo",$exedir."vncpasswd.turbo") {
+ 	    for (split(/:/,$ENV{PATH})) {
+ 		if (-x "$cmd") {
+-		    $vncClasses = $exedir."../vnc/classes";
++		    $vncClasses = $exedir."../share/turbovnc/classes";
+ 		    next cmd3;
+ 		}
+ 	    }

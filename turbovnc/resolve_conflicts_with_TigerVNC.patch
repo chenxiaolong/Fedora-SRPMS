@@ -1,0 +1,1296 @@
+Since TurboVNC is based off of TigerVNC, the names of the binaries are the same
+for both. This patch adds a '.turbo' suffix to the binaries so that TurboVNC
+doesn't conflict with TigerVNC.
+
+diff -Nru vnc_unixsrc.orig/classes/index.vnc vnc_unixsrc/classes/index.vnc
+--- vnc_unixsrc.orig/classes/index.vnc	2012-02-22 22:51:16.287708361 -0500
++++ vnc_unixsrc/classes/index.vnc	2012-02-22 22:58:05.996342275 -0500
+@@ -1,10 +1,10 @@
+ <!-- 
+      index.vnc - default HTML page for TightVNC Java viewer applet, to be
+-     used with Xvnc. On any file ending in .vnc, the HTTP server embedded in
+-     Xvnc will substitute the following variables when preceded by a dollar:
+-     USER, DESKTOP, DISPLAY, APPLETWIDTH, APPLETHEIGHT, WIDTH, HEIGHT, PORT,
+-     PARAMS. Use two dollar signs ($$) to get a dollar sign in the generated
+-     HTML page.
++     used with Xvnc.turbo. On any file ending in .vnc, the HTTP server embedded
++     in Xvnc.turbo will substitute the following variables when preceded by a
++     dollar: USER, DESKTOP, DISPLAY, APPLETWIDTH, APPLETHEIGHT, WIDTH, HEIGHT,
++     PORT, PARAMS. Use two dollar signs ($$) to get a dollar sign in the
++     generated HTML page.
+ 
+      NOTE: the $PARAMS variable is not supported by the standard VNC, so
+      make sure you have TightVNC on the server side, if you're using this
+diff -Nru vnc_unixsrc.orig/classes/README vnc_unixsrc/classes/README
+--- vnc_unixsrc.orig/classes/README	2012-02-22 22:51:16.287708361 -0500
++++ vnc_unixsrc/classes/README	2012-02-22 23:00:16.914073631 -0500
+@@ -49,13 +49,13 @@
+      clients.  This enables easy access to the shared desktop without the need
+      to install any software on the client machine.
+ 
+-     The Unix TurboVNC Server (Xvnc) is able to serve up any set of files which
+-     are present in a particular directory, which is determined by the -httpd
+-     argument to Xvnc.  In the default version of the vncserver script, this
+-     argument is set to ../vnc/classes, relative to the directory containing
+-     the vncserver script.  Thus, one can easily deploy a modified version of
+-     the Java TurboVNC Viewer by simply copying a new JAR file to this
+-     directory.
++     The Unix TurboVNC Server (Xvnc.turbo) is able to serve up any set of files
++     which are present in a particular directory, which is determined by the
++     -httpd argument to Xvnc.turbo.  In the default version of the
++     vncserver.turbo script, this argument is set to ../vnc/classes, relative to
++     the directory containing the vncserver.turbo script.  Thus, one can easily
++     deploy a modified version of the Java TurboVNC Viewer by simply copying a
++     new JAR file to this directory.
+ 
+      The Windows TurboVNC Server (WinVNC) embeds the JAR file inside of its
+      executable, so deploying a modified version of the Java TurboVNC Viewer
+diff -Nru vnc_unixsrc.orig/configure.ac vnc_unixsrc/configure.ac
+--- vnc_unixsrc.orig/configure.ac	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/configure.ac	2012-02-22 22:52:10.349582916 -0500
+@@ -155,7 +155,7 @@
+ AC_SUBST(GCC)
+ AC_DEFINE_UNQUOTED(__BUILD, "${BUILD}")
+ 
+-AC_CONFIG_FILES([vncserver], [chmod +x vncserver])
++AC_CONFIG_FILES([vncserver.turbo], [chmod +x vncserver.turbo])
+ AC_CONFIG_FILES([Xvnc/config/cf/tvnc_version.h])
+ AC_CONFIG_FILES([pkgscripts/turbovnc.spec:release/turbovnc.spec.in])
+ AC_CONFIG_FILES([pkgscripts/deb-control:release/deb-control.in])
+diff -Nru vnc_unixsrc.orig/Makefile.am vnc_unixsrc/Makefile.am
+--- vnc_unixsrc.orig/Makefile.am	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/Makefile.am	2012-02-22 22:58:05.999342269 -0500
+@@ -7,7 +7,7 @@
+ mandir = @MANDIR@
+ datadir = @DATADIR@
+ 
+-noinst_SCRIPTS = vncserver
++noinst_SCRIPTS = vncserver.turbo
+ noinst_MANS = vncserver.man
+ noinst_HEADERS = Xvnc/config/cf/tvnc_version.h
+ 
+@@ -40,9 +40,9 @@
+ 	sh ../Xvnc-configure; \
+ 	$(MAKE) CC="$(CC)" CDEBUGFLAGS="$(CFLAGS)" EXTRA_LDOPTIONS="$(LDFLAGS)" clean
+ 
+-xserver-install: vncserver
+-	$(INSTALL) -m 755 ./vncserver $(DESTDIR)/$(bindir)/
+-	$(INSTALL) -m 755 ./Xvnc/programs/Xserver/Xvnc $(DESTDIR)/$(bindir)/
++xserver-install: vncserver.turbo
++	$(INSTALL) -m 755 ./vncserver.turbo $(DESTDIR)/$(bindir)/
++	$(INSTALL) -m 755 ./Xvnc/programs/Xserver/Xvnc.turbo $(DESTDIR)/$(bindir)/
+ 	$(INSTALL) -m 644 $(srcdir)/vncserver.man $(DESTDIR)/$(mandir)/man1/vncserver.1
+ 	$(INSTALL) -m 644 $(srcdir)/Xvnc/programs/Xserver/Xvnc.man $(DESTDIR)/$(mandir)/man1/Xvnc.1
+ 	$(INSTALL) -m 644 $(srcdir)/Xvnc/programs/Xserver/Xserver.man $(DESTDIR)/$(mandir)/man1/Xserver.1
+@@ -55,8 +55,8 @@
+ 	$(INSTALL) -m 644 $(srcdir)/turbovncserver-auth.conf $(DESTDIR)/$(sysconfdir)/
+ 
+ xserver-uninstall:
+-	rm -f $(DESTDIR)/$(bindir)/vncserver
+-	rm -f $(DESTDIR)/$(bindir)/Xvnc
++	rm -f $(DESTDIR)/$(bindir)/vncserver.turbo
++	rm -f $(DESTDIR)/$(bindir)/Xvnc.turbo
+ 	rm -f $(DESTDIR)/$(mandir)/man1/vncserver.1
+ 	rm -f $(DESTDIR)/$(mandir)/man1/Xvnc.1
+ 	rm -f $(DESTDIR)/$(mandir)/man1/Xserver.1
+diff -Nru vnc_unixsrc.orig/README vnc_unixsrc/README
+--- vnc_unixsrc.orig/README	2012-02-22 22:51:16.329708264 -0500
++++ vnc_unixsrc/README	2012-02-22 22:57:31.133413814 -0500
+@@ -25,37 +25,40 @@
+ 
+ There are five programs here:
+ 
+-	vncviewer - this is the VNC viewer, or client, program for X.
++	vncviewer.turbo  - this is the VNC viewer, or client, program for X.
+ 
+-	vncserver - this is a wrapper script which makes starting an X VNC
+-		    server (i.e. desktop) more convenient.  It is written in
+-		    Perl, so to use the script you need that.
+-
+-	vncpasswd - this program allows you to change the password used to
+-		    access your X VNC desktops.  The vncserver script uses
+-		    this program when you first start a VNC server.
+-
+-	vncconnect - this program tells a running instance of Xvnc to connect
+-		     to a listening VNC viewer (normally the connection is made
+-		     the other way round i.e. the viewer connects to Xvnc).
+-
+-	Xvnc - this is the X VNC server - it is both an X server and a VNC
+-	       server.  You normally use the vncserver script to start Xvnc.
+-
+-
+-We recommend that you use the vncserver script to run Xvnc for you.  You can
+-edit the script as appropriate for your site.  Things you may need to change
+-include:
++	vncserver.turbo  - this is a wrapper script which makes starting an X
++			   VNC server (i.e. desktop) more convenient.  It is
++			   written in Perl, so to use the script you need that.
++
++	vncpasswd.turbo  - this program allows you to change the password used
++			   to access your X VNC desktops.  The vncserver.turbo
++			   script uses this program when you first start a VNC
++			   server.
++
++	vncconnect.turbo - this program tells a running instance of Xvnc.turbo
++			   to connect to a listening VNC viewer (normally the
++			   connection is made the other way round i.e. the
++			   viewer connects to Xvnc.turbo).
++
++	Xvnc.turbo	 - this is the X VNC server - it is both an X server and
++			   a VNC server.  You normally use the vncserver.turbo
++			   script to start Xvnc.turbo.
++
++
++We recommend that you use the vncserver.turbo script to run Xvnc.turbo for you.
++You can edit the script as appropriate for your site.  Things you may need to
++change include:
+ 
+  * The location of Perl - if Perl is not installed in /usr/bin you'll need
+-   to edit the "#!/usr/bin/perl" first line of vncserver.
++   to edit the "#!/usr/bin/perl" first line of vncserver.turbo.
+ 
+  * $vncClasses - this specifies the location of the Java classes for
+    the VNC viewer applet.  The default is /usr/local/vnc/classes.
+ 
+- * Xvnc's font path and color database.  If you have an installation of
++ * Xvnc.turbo's font path and color database.  If you have an installation of
+    X which is not in the standard place you may need to add arguments to the
+-   Xvnc command line to set these.  These should be appended to the $cmd
++   Xvnc.turbo command line to set these.  These should be appended to the $cmd
+    variable at the comment "# Add font path and color database...".
+ 
+ 
+diff -Nru vnc_unixsrc.orig/ReadMe.rtf vnc_unixsrc/ReadMe.rtf
+--- vnc_unixsrc.orig/ReadMe.rtf	2012-02-22 22:51:16.329708264 -0500
++++ vnc_unixsrc/ReadMe.rtf	2012-02-22 22:52:29.795537795 -0500
+@@ -9,7 +9,7 @@
+ \
+ TurboVNC, in combination with VirtualGL, provides a complete environment for remotely displaying 3D applications with interactive frame rates.\
+ \
+-This package includes the TurboVNC Viewer (vncviewer), which is necessary to connect to TurboVNC servers.  The Macintosh X11 application (which is not installed by default but which can be installed from the OS X distribution discs) must be installed and started prior to using the TurboVNC Viewer. \
++This package includes the TurboVNC Viewer (vncviewer.turbo), which is necessary to connect to TurboVNC servers.  The Macintosh X11 application (which is not installed by default but which can be installed from the OS X distribution discs) must be installed and started prior to using the TurboVNC Viewer. \
+ \
+ Refer to the TurboVNC documentation (a link to which is provided in the Applications folder) for usage information.\
+-}
+\ No newline at end of file
++}
+diff -Nru vnc_unixsrc.orig/turbovncserver-auth.conf vnc_unixsrc/turbovncserver-auth.conf
+--- vnc_unixsrc.orig/turbovncserver-auth.conf	2012-02-22 22:51:16.329708264 -0500
++++ vnc_unixsrc/turbovncserver-auth.conf	2012-02-22 22:58:06.001342265 -0500
+@@ -30,9 +30,9 @@
+ # Set the following to any combination of "vnc", "otp", "pam-userpwd", or
+ # "none", separated by commas.  If the following variable is enabled and
+ # a particular authentication method is not listed in it, then users cannot
+-# enable that authentication method by using Xvnc command line arguments.  This
+-# variable also controls the order in which the corresponding authentication
+-# capabilities are advertised to the TurboVNC Viewer.
++# enable that authentication method by using Xvnc.turbo command line arguments.
++# This variable also controls the order in which the corresponding
++# authentication capabilities are advertised to the TurboVNC Viewer.
+ # (Default: vnc, otp, pam-userpwd, none)
+ 
+ #permitted-auth-methods = vnc, otp, pam-userpwd
+diff -Nru vnc_unixsrc.orig/turbovncserver.conf vnc_unixsrc/turbovncserver.conf
+--- vnc_unixsrc.orig/turbovncserver.conf	2012-02-22 22:51:16.330708261 -0500
++++ vnc_unixsrc/turbovncserver.conf	2012-02-22 22:58:06.002342263 -0500
+@@ -13,7 +13,7 @@
+ ##  $vncUserDir  -- path to TurboVNC user directory (session information,
+ ##                  VNC passwords, and log files are stored here)
+ ##  $fontPath    -- X font path
+-##  $authType    -- argument(s) to Xvnc specifying authentication type(s)
++##  $authType    -- argument(s) to Xvnc.turbo specifying authentication type(s)
+ ##  $colorPath   -- optional path to X colors database
+ ##  $generateOTP -- 1 to generate an initial one-time password.  (OTP
+ ##                  authentication must be enabled and permitted)
+@@ -49,9 +49,9 @@
+ 
+ ## You might wish to create the TurboVNC user directories under /tmp, to
+ ## ensure that VNC passwords are always kept on the local filesystem.  To do
+-## that, uncomment the line below.  Note that in this case, Xvnc will search
+-## for the .Xauthority file in this same directory by default, and the TurboVNC
+-## startup script will be stored in $ENV{HOME}/.turbovncstartup instead of in
+-## $vncUserDir/xstartup.turbovnc.
++## that, uncomment the line below.  Note that in this case, Xvnc.turbo will
++## search for the .Xauthority file in this same directory by default, and the
++## TurboVNC startup script will be stored in $ENV{HOME}/.turbovncstartup instead
++## of in $vncUserDir/xstartup.turbovnc.
+ #
+ # $vncUserDir = "/tmp/$ENV{USER}-vnc";
+diff -Nru vnc_unixsrc.orig/vncconnect/Makefile.am vnc_unixsrc/vncconnect/Makefile.am
+--- vnc_unixsrc.orig/vncconnect/Makefile.am	2012-02-22 22:51:16.283708370 -0500
++++ vnc_unixsrc/vncconnect/Makefile.am	2012-02-22 22:52:36.776521597 -0500
+@@ -1,12 +1,12 @@
+ mandir = @MANDIR@
+ datadir = @DATADIR@
+ 
+-bin_PROGRAMS = vncconnect
++bin_PROGRAMS = vncconnect.turbo
+ 
+ man1_MANS = vncconnect.man
+ 
+-vncconnect_SOURCES = vncconnect.c
++vncconnect_turbo_SOURCES = vncconnect.c
+ 
+-vncconnect_CFLAGS = @X_CFLAGS@
++vncconnect_turbo_CFLAGS = @X_CFLAGS@
+ 
+-vncconnect_LDADD = @X_LIBS@ -lX11
++vncconnect_turbo_LDADD = @X_LIBS@ -lX11
+diff -Nru vnc_unixsrc.orig/vncconnect/vncconnect.man vnc_unixsrc/vncconnect/vncconnect.man
+--- vnc_unixsrc.orig/vncconnect/vncconnect.man	2012-02-22 22:51:16.283708370 -0500
++++ vnc_unixsrc/vncconnect/vncconnect.man	2012-02-22 22:58:06.002342263 -0500
+@@ -1,6 +1,6 @@
+ '\" t
+ .\" ** The above line should force tbl to be a preprocessor **
+-.\" Man page for X vncconnect
++.\" Man page for X vncconnect.turbo
+ .\"
+ .\" Copyright (C) 2000,2001 Red Hat, Inc.
+ .\" Copyright (C) 2001-2003 Constantin Kaplinsky
+@@ -11,18 +11,18 @@
+ .\" License as specified in the file LICENCE.TXT that comes with the
+ .\" TightVNC distribution.
+ .\"
+-.TH vncconnect 1 "June 2010" "" "TurboVNC"
++.TH vncconnect.turbo 1 "June 2010" "" "TurboVNC"
+ .SH NAME
+-vncconnect \- connect a VNC server to a VNC viewer
++vncconnect.turbo \- connect a VNC server to a VNC viewer
+ .SH SYNOPSIS
+ .nf
+-\fBvncconnect\fR [\-display \fIXvnc-display\fR] \fIhost\fR[:\fIport\fR]
++\fBvncconnect.turbo\fR [\-display \fIXvnc-display\fR] \fIhost\fR[:\fIport\fR]
+ .fi
+ .SH DESCRIPTION
+-Tells \fBXvnc\fR(1) to connect to a listening VNC viewer on the given
++Tells \fBXvnc.turbo\fR(1) to connect to a listening VNC viewer on the given
+ host and port.
+ .SH SEE ALSO
+-\fBvncviewer\fR(1), \fBvncserver\fR(1), \fBXvnc\fR(1), \fBvncpasswd\fR(1)
++\fBvncviewer.turbo\fR(1), \fBvncserver.turbo\fR(1), \fBXvnc.turbo\fR(1), \fBvncpasswd.turbo\fR(1)
+ .SH AUTHORS
+ VNC was originally developed at AT&T Laboratories Cambridge. TightVNC
+ additions were implemented by Constantin Kaplinsky. TurboVNC, based
+@@ -36,3 +36,7 @@
+ Constantin Kaplinsky <const@tightvnc.com>
+ .br
+ D. R. Commander <information@virtualgl.org>
++
++\fBModified for Fedora packaging by:\fR
++.br
++Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+diff -Nru vnc_unixsrc.orig/vncpasswd/Makefile.am vnc_unixsrc/vncpasswd/Makefile.am
+--- vnc_unixsrc.orig/vncpasswd/Makefile.am	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/vncpasswd/Makefile.am	2012-02-22 22:52:44.127504539 -0500
+@@ -1,12 +1,12 @@
+ mandir = @MANDIR@
+ datadir = @DATADIR@
+ 
+-bin_PROGRAMS = vncpasswd
++bin_PROGRAMS = vncpasswd.turbo
+ 
+ man1_MANS = vncpasswd.man
+ 
+-vncpasswd_SOURCES = vncpasswd.c
++vncpasswd_turbo_SOURCES = vncpasswd.c
+ 
+-vncpasswd_CFLAGS = @X_CFLAGS@ -I${top_srcdir}/include
++vncpasswd_turbo_CFLAGS = @X_CFLAGS@ -I${top_srcdir}/include
+ 
+-vncpasswd_LDADD = @X_LIBS@ -lX11 ../libvncauth/libvncauth.a
++vncpasswd_turbo_LDADD = @X_LIBS@ -lX11 ../libvncauth/libvncauth.a
+diff -Nru vnc_unixsrc.orig/vncpasswd/vncpasswd.man vnc_unixsrc/vncpasswd/vncpasswd.man
+--- vnc_unixsrc.orig/vncpasswd/vncpasswd.man	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/vncpasswd/vncpasswd.man	2012-02-22 22:58:06.003342261 -0500
+@@ -1,6 +1,6 @@
+ '\" t
+ .\" ** The above line should force tbl to be a preprocessor **
+-.\" Man page for X vncpasswd
++.\" Man page for X vncpasswd.turbo
+ .\"
+ .\" Copyright (C) 1998 Marcus.Brinkmann@ruhr-uni-bochum.de
+ .\" Copyright (C) 2000 Red Hat, Inc.
+@@ -13,32 +13,32 @@
+ .\" License as specified in the file LICENCE.TXT that comes with the
+ .\" TightVNC distribution.
+ .\"
+-.TH vncpasswd 1 "July 2010" "" "TurboVNC"
++.TH vncpasswd.turbo 1 "July 2010" "" "TurboVNC"
+ .SH NAME
+-vncpasswd \- set passwords for VNC server
++vncpasswd.turbo \- set passwords for VNC server
+ .SH SYNOPSIS
+-\fBvncpasswd\fR [\-v] [\fIfile\fR]
++\fBvncpasswd.turbo\fR [\-v] [\fIfile\fR]
+ .br
+-\fBvncpasswd\fR \-t [\-v]
++\fBvncpasswd.turbo\fR \-t [\-v]
+ .br
+-\fBvncpasswd\fR \-f
++\fBvncpasswd.turbo\fR \-f
+ .br
+-\fBvncpasswd\fR \-o [\-v] [\-display \fIVNC-display\fR]
++\fBvncpasswd.turbo\fR \-o [\-v] [\-display \fIVNC-display\fR]
+ .br
+-\fBvncpasswd\fR \-c [\-display \fIVNC-display\fR]
++\fBvncpasswd.turbo\fR \-c [\-display \fIVNC-display\fR]
+ .br
+-\fBvncpasswd\fR \-a \fIuser\fR [\-v] [\-display \fIVNC-display\fR]
++\fBvncpasswd.turbo\fR \-a \fIuser\fR [\-v] [\-display \fIVNC-display\fR]
+ .br
+-\fBvncpasswd\fR \-r \fIuser\fR [\-display \fIVNC-display\fR]
++\fBvncpasswd.turbo\fR \-r \fIuser\fR [\-display \fIVNC-display\fR]
+ .br
+ .SH DESCRIPTION
+-The \fBvncpasswd\fR utility can be used to create and change
+-passwords for Xvnc (the TurboVNC virtual X server.)  \fBXvnc\fR uses these
++The \fBvncpasswd.turbo\fR utility can be used to create and change
++passwords for Xvnc.turbo (the TurboVNC virtual X server.)  \fBXvnc.turbo\fR uses these
+ passwords when started with the \fB\-rfbauth\fR command line option
+-(or when started from the \fBvncserver\fR script.)
++(or when started from the \fBvncserver.turbo\fR script.)
+ 
+-\fBvncpasswd\fR allows one to enter a primary VNC password and an
+-optional view-only password.  \fBXvnc\fR will ignore mouse and keyboard
++\fBvncpasswd.turbo\fR allows one to enter a primary VNC password and an
++optional view-only password.  \fBXvnc.turbo\fR will ignore mouse and keyboard
+ input from clients who authenticate with the view-only password.
+ 
+ The password filename defaults to \fB$HOME/.vnc/passwd\fR, unless the
+@@ -49,7 +49,7 @@
+ Each password has to be longer than five characters (unless the
+ \fB\-f\fR command line option was used-- see its description below.) 
+ Only the first eight characters are significant.  If the primary
+-password is too short, then vncpasswd will abort.  If the view-only
++password is too short, then vncpasswd.turbo will abort.  If the view-only
+ password is too short, then only the primary password will be saved.
+ 
+ Unless a filename was explicitly provided in the command line, then this
+@@ -58,16 +58,16 @@
+ .br
+ .SH ONE-TIME PASSWORD (OTP) SUPPORT
+ If the VNC server is configured to support one-time passwords, then
+-\fBvncpasswd\fR can be used to generate new one-time passwords for both full
++\fBvncpasswd.turbo\fR can be used to generate new one-time passwords for both full
+ control and, optionally, view-only access.  A one-time password is valid for
+ one successful connection from a VNC viewer to the VNC server session.  For
+ each subsequent connection, a new one-time password must be generated.
+-\fBvncpasswd\fR can also be used to clear any one-time passwords that are
++\fBvncpasswd.turbo\fR can also be used to clear any one-time passwords that are
+ currently enabled for a VNC server session.
+ .br
+ .SH USER ACCESS CONTROL LIST SUPPORT
+ If the VNC server is configured to support a user access control list (ACL) for
+-the PAM user/password authentication method, then \fBvncpasswd\fR
++the PAM user/password authentication method, then \fBvncpasswd.turbo\fR
+ can be used to add users to or remove users from the ACL.  Be careful not to
+ remove yourself from the list, or you will not be able to connect again until
+ you re-add yourself.
+@@ -114,11 +114,11 @@
+ Remove \fIuser\fR from \fIVNC-display\fR's user ACL.
+ .SH EXIT CODES
+ If at least one password was saved successfully, or if the one-time password
+-or user ACL operation succeeded, then \fBvncpasswd\fR will
++or user ACL operation succeeded, then \fBvncpasswd.turbo\fR will
+ exit with status 0.  Otherwise, it will exit with status 1.
+ .SH SEE ALSO
+-\fBvncserver\fR(1), \fBXvnc\fR(1), \fBvncviewer\fR(1),
+-\fBvncconnect\fR(1)
++\fBvncserver.turbo\fR(1), \fBXvnc.turbo\fR(1), \fBvncviewer.turbo\fR(1),
++\fBvncconnect.turbo\fR(1)
+ .SH AUTHORS
+ VNC was originally developed at AT&T Laboratories Cambridge.  TightVNC
+ additions were implemented by Constantin Kaplinsky.  TurboVNC, based
+@@ -136,3 +136,7 @@
+ D. R. Commander <information@virtualgl.org>
+ .br
+ Craig Ruff <cruff@ucar.edu>
++
++\fBModified for Fedora packaging by:\fR
++.br
++Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+diff -Nru vnc_unixsrc.orig/vncserver.in vnc_unixsrc/vncserver.in
+--- vnc_unixsrc.orig/vncserver.in	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/vncserver.in	2012-02-22 22:58:06.005342257 -0500
+@@ -24,7 +24,7 @@
+ #
+ 
+ #
+-# vncserver - wrapper script to start an X VNC server.
++# vncserver.turbo - wrapper script to start an X VNC server.
+ #
+ 
+ # First make sure we're operating in a sane environment.
+@@ -309,7 +309,7 @@
+ 
+     if (!-e _ || ($mode & 077) != 0) {
+ 	warn "\nYou will require a password to access your desktops.\n\n";
+-	system($exedir."vncpasswd $vncUserDir/passwd");
++	system($exedir."vncpasswd.turbo $vncUserDir/passwd");
+ 	if (($? & 0xFF00) != 0) {
+ 	    exit 1;
+ 	}
+@@ -357,7 +357,7 @@
+ 
+ # Now start the X VNC Server
+ 
+-$cmd = $exedir."Xvnc :$displayNumber";
++$cmd = $exedir."Xvnc.turbo :$displayNumber";
+ $cmd .= " -dpi $dpi" if ($dpi);
+ $cmd .= " -desktop " . &quotedString($desktopName);
+ $cmd .= " -httpd $vncClasses" if ($enableHTTP);
+@@ -385,21 +385,21 @@
+ $pidFile = "$vncUserDir/$host:$displayNumber.pid";
+ system("$cmd & echo \$! >$pidFile");
+ 
+-# Give Xvnc a chance to start up
++# Give Xvnc.turbo a chance to start up
+ 
+ sleep(1);
+ unless (kill 0, `cat $pidFile`) {
+-    warn "\nWARNING: The first attempt to start Xvnc failed, possibly because the vncserver\n";
++    warn "\nWARNING: The first attempt to start Xvnc.turbo failed, possibly because the vncserver.turbo\n";
+     warn "script was not able to figure out an appropriate X11 font path for this system\n";
+     warn "or because the font path you specified with the -fp argument was not valid.\n";
+-    warn "Attempting to restart Xvnc using the X Font Server (xfs) ...\n";
++    warn "Attempting to restart Xvnc.turbo using the X Font Server (xfs) ...\n";
+     $cmd =~ s@-fp [^ ]+@@;
+     $cmd .= " -fp $defFontPath" if ($defFontPath);
+     system("$cmd & echo \$! >$pidFile");
+     sleep(1);
+ }
+ unless (kill 0, `cat $pidFile`) {
+-    warn "Could not start Xvnc.\n\n";
++    warn "Could not start Xvnc.turbo.\n\n";
+     open(LOG, "<$desktopLog");
+     while (<LOG>) { print; }
+     close(LOG);
+@@ -411,13 +411,13 @@
+ if ($generateOTP == 1) {
+     warn "One-time password authentication enabled.  Generating initial OTP ...\n";
+ 
+-    system($exedir."vncpasswd -o -display $host:$displayNumber");
++    system($exedir."vncpasswd.turbo -o -display $host:$displayNumber");
+     if (($? & 0xFF00) != 0) {
+         print "Could not generate initial OTP.\n";
+ 	exit 1;
+     }
+ 
+-    warn "Run 'vncpasswd -o' from within the TurboVNC session or\n    'vncpasswd -o -display $host:$displayNumber' from within this shell\n    to generate additional OTPs\n";
++    warn "Run 'vncpasswd.turbo -o' from within the TurboVNC session or\n    'vncpasswd.turbo -o -display $host:$displayNumber' from within this shell\n    to generate additional OTPs\n";
+ }
+ 
+ # Create the user's xstartup script if necessary.
+@@ -673,7 +673,7 @@
+ 	"       $prog -kill :<DISPLAY#>\n".
+ 	"       $prog -list\n".
+ 	"\n".
+-	"<OPTIONS> are Xvnc options, or:\n".
++	"<OPTIONS> are Xvnc.turbo options, or:\n".
+ 	"\n".
+ 	"        -name <DESKTOP-NAME>\n".
+ 	"        -depth <DEPTH>\n".
+@@ -688,7 +688,7 @@
+ 	"        -nopam\n".
+ 	"        -noauth\n".
+ 	"\n".
+-	"See vncserver and Xvnc manual pages for more information.\n");
++	"See vncserver.turbo and Xvnc.turbo manual pages for more information.\n");
+ }
+ 
+ 
+@@ -732,34 +732,34 @@
+ 
+     unless (-r $pidFile) {
+ 	die "\nCan't find file $pidFile\n".
+-	    "You'll have to kill the Xvnc process manually\n\n";
++	    "You'll have to kill the Xvnc.turbo process manually\n\n";
+     }
+ 
+     $SIG{'HUP'} = 'IGNORE';
+     chop($pid = `cat $pidFile`);
+-    warn "Killing Xvnc process ID $pid\n";
++    warn "Killing Xvnc.turbo process ID $pid\n";
+ 
+     if (kill 0, $pid) {
+ 	system("kill $pid");
+ 	sleep(1);
+ 	if (kill 0, $pid) {
+-	    print "Xvnc seems to be deadlocked.  Kill the process manually and then re-run\n";
++	    print "Xvnc.turbo seems to be deadlocked.  Kill the process manually and then re-run\n";
+ 	    print "    ".$0." -kill ".$opt{'-kill'}."\n";
+ 	    print "to clean up the socket files.\n";
+ 	    exit
+ 	}
+ 
+     } else {
+-	warn "Xvnc process ID $pid already killed\n";
++	warn "Xvnc.turbo process ID $pid already killed\n";
+ 	$opt{'-kill'} =~ s/://;
+     
+ 	if (-e "/tmp/.X11-unix/X$opt{'-kill'}") {
+-	    print "Xvnc did not appear to shut down cleanly.";
++	    print "Xvnc.turbo did not appear to shut down cleanly.";
+ 	    print " Removing /tmp/.X11-unix/X$opt{'-kill'}\n";
+ 	    unlink "/tmp/.X11-unix/X$opt{'-kill'}";
+ 	}
+ 	if (-e "/tmp/.X$opt{'-kill'}-lock") {
+-	    print "Xvnc did not appear to shut down cleanly.";
++	    print "Xvnc.turbo did not appear to shut down cleanly.";
+ 	    print " Removing /tmp/.X$opt{'-kill'}-lock\n";
+ 	    unlink "/tmp/.X$opt{'-kill'}-lock";
+ 	}
+@@ -861,7 +861,7 @@
+ 
+     if($exedir eq "") {
+       cmd2:
+-	foreach $cmd ("Xvnc","vncpasswd") {
++	foreach $cmd ("Xvnc.turbo","vncpasswd.turbo") {
+ 	    for (split(/:/,$ENV{PATH})) {
+ 		if (-x "$_/$cmd") {
+ 		    $vncClasses = "$_/../vnc/classes";
+@@ -873,7 +873,7 @@
+     }
+     else {
+       cmd3:
+-	foreach $cmd ($exedir."Xvnc",$exedir."vncpasswd") {
++	foreach $cmd ($exedir."Xvnc.turbo",$exedir."vncpasswd.turbo") {
+ 	    for (split(/:/,$ENV{PATH})) {
+ 		if (-x "$cmd") {
+ 		    $vncClasses = $exedir."../vnc/classes";
+diff -Nru vnc_unixsrc.orig/vncserver.man vnc_unixsrc/vncserver.man
+--- vnc_unixsrc.orig/vncserver.man	2012-02-22 22:51:16.328708267 -0500
++++ vnc_unixsrc/vncserver.man	2012-02-22 22:58:06.006342255 -0500
+@@ -1,6 +1,6 @@
+ '\" t
+ .\" ** The above line should force tbl to be a preprocessor **
+-.\" Man page for vncserver
++.\" Man page for vncserver.turbo
+ .\"
+ .\" Copyright (C) 1998 Marcus.Brinkmann@ruhr-uni-bochum.de
+ .\" Copyright (C) 2000, opal@debian.org
+@@ -13,34 +13,34 @@
+ .\" License as specified in the file LICENCE.TXT that comes with the
+ .\" TightVNC distribution.
+ .\"
+-.TH vncserver 1 "March 2011" "" "TurboVNC"
++.TH vncserver.turbo 1 "March 2011" "" "TurboVNC"
+ .SH NAME
+-vncserver \- a wrapper to launch an X server for VNC.
++vncserver.turbo \- a wrapper to launch an X server for VNC.
+ .SH SYNOPSIS
+-\fBvncserver\fR
++\fBvncserver.turbo\fR
+ [:\fIdisplay\fR] [\-geometry \fIwidth\fRx\fIheight\fR] [\-depth \fIdepth\fR]
+ [\-pixelformat rgb\fINNN\fR|bgr\fINNN\fR] [\-fp \fIfont\-path\fR]
+ [\-name \fIdesktop\-name\fR] [\-list] [\-fg] [\-novncauth] [\-nootp] [\-nopam]
+ [\-noauth] [\-otp] [\fIXvnc\-options\fR...]
+ .TP
+-\fBvncserver\fR \-kill :\fIdisplay\fR
++\fBvncserver.turbo\fR \-kill :\fIdisplay\fR
+ .TP
+-\fBvncserver\fR \-list
++\fBvncserver.turbo\fR \-list
+ .TP
+-\fBvncserver\fR \-help
++\fBvncserver.turbo\fR \-help
+ .SH DESCRIPTION
+-\fBvncserver\fR is a wrapper script for \fBXvnc\fR, the VNC (Virtual Network
+-Computing) X server. Xvnc provides all of the capabilities of a standard X
+-server, but it does not connect to a physical display. Instead, \fBXvnc\fR
++\fBvncserver.turbo\fR is a wrapper script for \fBXvnc.turbo\fR, the VNC (Virtual Network
++Computing) X server. Xvnc.turbo provides all of the capabilities of a standard X
++server, but it does not connect to a physical display. Instead, \fBXvnc.turbo\fR
+ creates a virtual X display which you can view or control remotely using a VNC
+ viewer.
+ .SH OPTIONS
+-You can add \fBXvnc\fR options to the \fBvncserver\fR command line. They will be
+-passed through to Xvnc without modification. The options provided by
+-\fBvncserver\fR itself are as follows:
++You can add \fBXvnc.turbo\fR options to the \fBvncserver.turbo\fR command line. They will be
++passed through to Xvnc.turbo without modification. The options provided by
++\fBvncserver.turbo\fR itself are as follows:
+ .TP
+ \fB:\fR\fIdisplay\fR
+-The X display number which Xvnc should occupy. If omitted, the next free display number
++The X display number which Xvnc.turbo should occupy. If omitted, the next free display number
+ is used.
+ .TP
+ \fB\-geometry\fR \fIwidth\fR\fBx\fR\fIheight\fR
+@@ -51,10 +51,10 @@
+ be a value between 8 and 32.
+ .TP
+ \fB\-pixelformat\fR \fBrgb\fR\fINNN\fR|\fBbgr\fR\fINNN\fR
+-Specify the pixel format of the virtual X display. Xvnc can use any pixel
++Specify the pixel format of the virtual X display. Xvnc.turbo can use any pixel
+ format you choose, but if this pixel format does not match the pixel format
+-of the display on which vncviewer is running, then Xvnc will perform pixel
+-format conversion prior to sending images to vncviewer. This can slow
++of the display on which vncviewer.turbo is running, then Xvnc.turbo will perform pixel
++format conversion prior to sending images to vncviewer.turbo. This can slow
+ performance. The default pixel format, rgb888, is equivalent to BGRA on little
+ endian systems or ARGB on big endian systems.  A pixel format of bgr888 is
+ equivalent to RGBA on little endian systems or ABGR on big endian systems.
+@@ -63,52 +63,52 @@
+ This specifies the name of the desktop.
+ .TP
+ \fB\-nohttpd
+-The default behavior of the \fBvncserver\fR script is to enable the embedded
+-web server in Xvnc, which serves up the Java TurboVNC Viewer on a dedicated
+-port.  Passing an argument of -nohttpd to \fBvncserver\fR tells it not to enable
+-the embedded web server in Xvnc.
++The default behavior of the \fBvncserver.turbo\fR script is to enable the embedded
++web server in Xvnc.turbo, which serves up the Java TurboVNC Viewer on a dedicated
++port.  Passing an argument of -nohttpd to \fBvncserver.turbo\fR tells it not to enable
++the embedded web server in Xvnc.turbo.
+ .TP
+ \fB\-novncauth\fR
+-The default behavior of the \fBvncserver\fR script is to enable all of the
++The default behavior of the \fBvncserver.turbo\fR script is to enable all of the
+ supported authentication methods (VNC password, one-time password, and PAM
+-user/password) in Xvnc.  Passing an argument of \-novncauth to \fBvncserver\fR
+-tells it not to enable the VNC password authentication method in Xvnc.  This
++user/password) in Xvnc.turbo.  Passing an argument of \-novncauth to \fBvncserver.turbo\fR
++tells it not to enable the VNC password authentication method in Xvnc.turbo.  This
+ argument has no effect if \fIpermitted-auth-methods\fR is specified in the
+ authentication configuration file and "vnc" is not listed as a permitted
+ method.
+ .TP
+ \fB\-nootp\fR
+-The default behavior of the \fBvncserver\fR script is to enable all of the
++The default behavior of the \fBvncserver.turbo\fR script is to enable all of the
+ supported authentication methods (VNC password, one-time password, and PAM
+-user/password) in Xvnc.  Passing an argument of \-nootp to \fBvncserver\fR
+-tells it not to enable the one-time password authentication method in Xvnc.
++user/password) in Xvnc.turbo.  Passing an argument of \-nootp to \fBvncserver.turbo\fR
++tells it not to enable the one-time password authentication method in Xvnc.turbo.
+ This argument has no effect if \fIpermitted-auth-methods\fR is specified in the
+ authentication configuration file and "otp" is not listed as a permitted
+ method.
+ .TP
+ \fB\-nopam\fR
+-The default behavior of the \fBvncserver\fR script is to enable all of the
++The default behavior of the \fBvncserver.turbo\fR script is to enable all of the
+ supported authentication methods (VNC password, one-time password, and PAM
+-user/password) in Xvnc.  Passing an argument of \-nopam to \fBvncserver\fR
+-tells it not to enable the PAM user/password authentication method in Xvnc.  
++user/password) in Xvnc.turbo.  Passing an argument of \-nopam to \fBvncserver.turbo\fR
++tells it not to enable the PAM user/password authentication method in Xvnc.turbo.  
+ Disabling this authentication method will prevent viewers from using Unix login
+ authentication.  This command-line argument has no effect if
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+ file and "pam-userpwd" is not listed as a permitted method.
+ .TP
+ \fB\-noauth\fR
+-The default behavior of the \fBvncserver\fR script is to enable all of the
++The default behavior of the \fBvncserver.turbo\fR script is to enable all of the
+ supported authentication methods (VNC password, one-time password, and PAM
+-user/password) in Xvnc.  Passing an argument of \-noauth to \fBvncserver\fR
+-tells it to disable all forms of authentication in Xvnc.  If
++user/password) in Xvnc.turbo.  Passing an argument of \-noauth to \fBvncserver.turbo\fR
++tells it to disable all forms of authentication in Xvnc.turbo.  If
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+-file and "none" is not listed as a permitted method, then Xvnc exits with an
++file and "none" is not listed as a permitted method, then Xvnc.turbo exits with an
+ error.
+ .TP
+ \fB\-otp\fR
+ If the one-time password authentication method is enabled and permitted in
+-Xvnc, then this generates an initial one-time password and prints it to the
+-console prior to starting Xvnc.
++Xvnc.turbo, then this generates an initial one-time password and prints it to the
++console prior to starting Xvnc.turbo.
+ .TP
+ \fB\-kill\fR \fB:\fR\fIdisplay\fR
+ Stops the VNC server which is currently running on the specified display.
+@@ -121,44 +121,39 @@
+ Prints a brief list of command line options
+ .TP
+ \fB\-fg\fR
+-Runs Xvnc as a foreground process.  This has two effects: (1) The VNC server
++Runs Xvnc.turbo as a foreground process.  This has two effects: (1) The VNC server
+ can be aborted with CTRL-C, and (2) the VNC server will exit as soon as the
+ user logs out of the window manager in the VNC session.  This may be necessary
+ when launching TurboVNC from within certain grid computing environments.
+ .TP
+ \fB\-fp\fR \fIfont-path\fR
+-The vncserver script will normally examine your system to figure out where it
+-stores its X11 fonts and then generate an appropriate font path for Xvnc based
+-on this.  If your system stores its X11 fonts in a location that vncserver does
+-not know about, however, then this may fail.  In that case, vncserver will then
++The vncserver.turbo script will normally examine your system to figure out where it
++stores its X11 fonts and then generate an appropriate font path for Xvnc.turbo based
++on this.  If your system stores its X11 fonts in a location that vncserver.turbo does
++not know about, however, then this may fail.  In that case, vncserver.turbo will then
+ try to contact the local X Font Server (xfs) on port 7100.  Not all systems
+ have xfs installed and running, so this may fail as well.  In that case, you
+-can manually specify a font path by using the -fp argument to vncserver.
++can manually specify a font path by using the -fp argument to vncserver.turbo.
+ 
+ If you prefer to use the X Font Server by default rather than a static font
+ path, then you can run
+ 
+-/opt/TurboVNC/bin/vncserver -fp unix/:7100
++/usr/bin/vncserver.turbo -fp unix/:7100
+ 
+-on Linux systems or
+-
+-/opt/TurboVNC/bin/vncserver -fp inet/:7100
+-
+-on Solaris systems.
+ .SH EXAMPLES
+ .TP
+-\fBvncserver\fR
+-Starts \fBXvnc\fR on the next available display and uses suitable
++\fBvncserver.turbo\fR
++Starts \fBXvnc.turbo\fR on the next available display and uses suitable
+ defaults.
+ .TP
+-\fBvncserver\fR \fI:1\fR
+-Starts \fBXvnc\fR on display :1.
++\fBvncserver.turbo\fR \fI:1\fR
++Starts \fBXvnc.turbo\fR on display :1.
+ .TP
+-\fBvncserver\fR -geometry \fI1024x768 :1\fR
+-Starts \fBXvnc\fR on display :1 with desktop size of 1024x768 pixels.
++\fBvncserver.turbo\fR -geometry \fI1024x768 :1\fR
++Starts \fBXvnc.turbo\fR on display :1 with desktop size of 1024x768 pixels.
+ .TP
+-\fBvncserver\fR -kill \fI:1\fR
+-Shuts down the \fBXvnc\fR server running on display :1.
++\fBvncserver.turbo\fR -kill \fI:1\fR
++Shuts down the \fBXvnc.turbo\fR server running on display :1.
+ .SH FILES
+ .TP
+ /etc/turbovncserver.conf
+@@ -168,7 +163,7 @@
+ User configuration file for the TurboVNC Server. Settings in this file
+ override the system-wide configuration.
+ .SH SEE ALSO
+-\fBXvnc\fR(1), \fBvncviewer\fR(1), \fBvncpasswd\fR(1), \fBvncconnect\fR(1)
++\fBXvnc.turbo\fR(1), \fBvncviewer.turbo\fR(1), \fBvncpasswd.turbo\fR(1), \fBvncconnect.turbo\fR(1)
+ .SH AUTHORS
+ VNC was originally developed at AT&T Laboratories Cambridge. TightVNC
+ additions were implemented by Constantin Kaplinsky. TurboVNC, based
+@@ -184,3 +179,7 @@
+ Constantin Kaplinsky <const@tightvnc.com>
+ .br
+ D. R. Commander <information@virtualgl.org>
++
++\fBModified for Fedora packaging by:\fR
++.br
++Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+diff -Nru vnc_unixsrc.orig/vncviewer/Makefile.am vnc_unixsrc/vncviewer/Makefile.am
+--- vnc_unixsrc.orig/vncviewer/Makefile.am	2012-02-22 22:51:16.285708366 -0500
++++ vnc_unixsrc/vncviewer/Makefile.am	2012-02-22 22:52:29.798537787 -0500
+@@ -1,11 +1,11 @@
+ mandir = @MANDIR@
+ datadir = @DATADIR@
+ 
+-bin_PROGRAMS = vncviewer
++bin_PROGRAMS = vncviewer.turbo
+ 
+ man1_MANS = vncviewer.man
+ 
+-vncviewer_SOURCES = \
++vncviewer_turbo_SOURCES = \
+ argsresources.c \
+ caps.c \
+ colour.c \
+@@ -39,7 +39,7 @@
+ 
+ endif
+ 
+-vncviewer_CFLAGS = -I${top_srcdir}/include @X_CFLAGS@ $(JPEGCFLAGS)
++vncviewer_turbo_CFLAGS = -I${top_srcdir}/include @X_CFLAGS@ $(JPEGCFLAGS)
+ 
+-vncviewer_LDADD = @X_PRE_LIBS@ @X_LIBS@ -lXaw -lXmu -lXt -lX11 @X_EXTRA_LIBS@ \
++vncviewer_turbo_LDADD = @X_PRE_LIBS@ @X_LIBS@ -lXaw -lXmu -lXt -lX11 @X_EXTRA_LIBS@ \
+ 	$(top_builddir)/libvncauth/libvncauth.a -lz -lpthread $(JPEGLDFLAGS)
+diff -Nru vnc_unixsrc.orig/vncviewer/README vnc_unixsrc/vncviewer/README
+--- vnc_unixsrc.orig/vncviewer/README	2012-02-22 22:51:16.285708366 -0500
++++ vnc_unixsrc/vncviewer/README	2012-02-22 22:52:29.799537785 -0500
+@@ -81,7 +81,7 @@
+ 
+ You can set X resources by any of the usual means - in an app-defaults file
+ such as .Xresources, or on the command line with the '-xrm' option,
+-e.g. vncviewer -xrm '*passwordDialog: true'.
++e.g. vncviewer.turbo -xrm '*passwordDialog: true'.
+ 
+ The file Vncviewer contains the same resource settings as the "fallback
+ resources" embedded in the executable.  You can copy this file into
+@@ -220,9 +220,10 @@
+   rawDelay
+ 
+     This is useful for debugging VNC servers by checking exactly which parts of
+-    the screen are being updated.  For each update rectangle vncviewer puts up
+-    a black rectangle for the given time in milliseconds before putting up the
+-    pixel data.  This only highlights pixel data sent using the raw encoding.
++    the screen are being updated.  For each update rectangle vncviewer.turbo
++    puts up a black rectangle for the given time in milliseconds before putting
++    up the pixel data.  This only highlights pixel data sent using the raw
++    encoding.
+     Default 0 (i.e. don't do it).
+ 
+   copyRectDelay
+diff -Nru vnc_unixsrc.orig/vncviewer/vncviewer.man vnc_unixsrc/vncviewer/vncviewer.man
+--- vnc_unixsrc.orig/vncviewer/vncviewer.man	2012-02-22 22:51:16.284708369 -0500
++++ vnc_unixsrc/vncviewer/vncviewer.man	2012-02-22 22:58:06.008342251 -0500
+@@ -1,6 +1,6 @@
+ '\" t
+ .\" ** The above line should force tbl to be a preprocessor **
+-.\" Man page for X vncviewer
++.\" Man page for X vncviewer.turbo
+ .\"
+ .\" Copyright (C) 1998 Marcus.Brinkmann@ruhr-uni-bochum.de
+ .\" Copyright (C) 2000,2001 Red Hat, Inc.
+@@ -13,20 +13,20 @@
+ .\" License as specified in the file LICENCE.TXT that comes with the
+ .\" TurboVNC distribution.
+ .\"
+-.TH vncviewer 1 "January 2011" "" "TurboVNC"
++.TH vncviewer.turbo 1 "January 2011" "" "TurboVNC"
+ .SH NAME
+-vncviewer \- an X11 viewer/client for TurboVNC
++vncviewer.turbo \- an X11 viewer/client for TurboVNC
+ .SH SYNOPSIS
+-\fBvncviewer\fR [\fIoptions\fR] [\fIhost\fR][\fI:display\fR]
++\fBvncviewer.turbo\fR [\fIoptions\fR] [\fIhost\fR][\fI:display\fR]
+ .br
+-\fBvncviewer\fR [\fIoptions\fR] [\fIhost\fR][\fI::port\fR]
++\fBvncviewer.turbo\fR [\fIoptions\fR] [\fIhost\fR][\fI::port\fR]
+ .br
+-\fBvncviewer\fR [\fIoptions\fR] -listen [\fIdisplay\fR]
++\fBvncviewer.turbo\fR [\fIoptions\fR] -listen [\fIdisplay\fR]
+ .br
+-\fBvncviewer\fR -help
++\fBvncviewer.turbo\fR -help
+ .br
+ .SH DESCRIPTION
+-.B vncviewer
++.B vncviewer.turbo
+ is an Xt\-based client application for the VNC (Virtual Network
+ Computing) system.  It can connect to any VNC server, allowing
+ you to control the desktop environment of a different machine.
+@@ -43,7 +43,7 @@
+ 5500+\fIdisplay\fR for reverse connections from a VNC server.
+ To connect to a listening viewer from a Windows VNC server, choose
+ "Add New Client..." from the VNC server's tray menu.  To connect
+-to a listening viewer from a Unix/Linux VNC server, use the \fBvncconnect\fR(1)
++to a listening viewer from a Unix/Linux VNC server, use the \fBvncconnect.turbo\fR(1)
+ program.
+ .TP
+ \fB\-via\fR \fIgateway\fR
+@@ -53,7 +53,7 @@
+ client binary is located at \fB/usr/bin/ssh\fR.  Note that when using the
+ \fB\-via\fR option, the \fIhost\fR machine name should be specified from the
+ point of view of the \fIgateway\fR machine.  For example, "localhost" denotes
+-the \fIgateway\fR, not the machine on which vncviewer was launched.  See the
++the \fIgateway\fR, not the machine on which vncviewer.turbo was launched.  See the
+ ENVIRONMENT section below for information on configuring the \fB\-via\fR
+ option.
+ .TP
+@@ -89,7 +89,7 @@
+ .TP
+ \fB\-passwd\fR \fIpasswd\-file\fR
+ File from which to get the VNC password (as generated by the
+-\fBvncpasswd\fR(1) program.)  Irrelevant if Unix login authentication is used.
++\fBvncpasswd.turbo\fR(1) program.)  Irrelevant if Unix login authentication is used.
+ .TP
+ \fB\-user\fR \fIuser\-name\fR
+ Specify user name for Unix login authentication (Default: current user name.)
+@@ -104,13 +104,13 @@
+ connection (for instance, to use a one-time password.)
+ .TP
+ \fB\-encodings\fR \fIencoding\-list\fR
+-This option specifies a list of image encoding methods that vncviewer is
++This option specifies a list of image encoding methods that vncviewer.turbo is
+ allowed to use.  The default list is "tight copyrect" for remote connections and
+ "raw copyrect" for local connections.  You can specify "tight" as the encoding
+ list in order to disable the use of CopyRect encoding (see the ENCODINGS
+ section below for more information about CopyRect encoding.)
+ 
+-This version of vncviewer also supports Hextile encoding, for backward
++This version of vncviewer.turbo also supports Hextile encoding, for backward
+ compatibility with RealVNC.  Specifying "hextile" at the head of the encoding
+ list will force the use of this protocol.  Hextile will also be used
+ automatically whenever you connect to any VNC server that doesn't support Tight
+@@ -198,7 +198,7 @@
+ framebuffer update have been received and decoded before it draws the
+ framebuffer update to the screen.  This is a form of double buffering,
+ and it reduces tearing artifacts when 3D or video applications switch
+-frames.  Passing an argument of \fB\-singlebuffer\fR to vncviewer will
++frames.  Passing an argument of \fB\-singlebuffer\fR to vncviewer.turbo will
+ cause it to draw each tile in the framebuffer update as it is received.
+ This may be desirable on very slow connections.
+ .TP
+@@ -316,7 +316,7 @@
+ rectangles.  In TurboVNC, the Tight protocol has been optimized for maximum
+ performance with 3D and video workloads.
+ .SH RESOURCES
+-X resources for \fBvncviewer\fR can be set in a file called \fBVncviewer\fR
++X resources for \fBvncviewer.turbo\fR can be set in a file called \fBVncviewer\fR
+ (case-sensitive), which can reside either in the user's home directory or in
+ the system-wide resources directory (for instance,
+ \fB/usr/lib/X11/app-defaults\fR).  To set a resource in this file, use the
+@@ -328,7 +328,7 @@
+ 
+ *fullScreen: true
+ 
+-X resources that \fBvncviewer\fR knows about, aside from the
++X resources that \fBvncviewer.turbo\fR knows about, aside from the
+ normal Xt resources, are as follows:
+ .TP
+ .B shareDesktop
+@@ -352,7 +352,7 @@
+ Equivalent of the \fB\-passwd\fR option.
+ .TP
+ .B passwordDialog
+-If true, vncviewer will pop up a dialog box to get the password.  Otherwise,
++If true, vncviewer.turbo will pop up a dialog box to get the password.  Otherwise,
+ it will get the password from the console.  Irrelevant if \fBpasswordFile\fR
+ is set.  Default false.
+ If Unix login authentication is used, then the dialog will prompt for
+@@ -443,7 +443,7 @@
+ .B rawDelay, copyRectDelay
+ For debugging.  See the README file for details.  Default 0 (off).
+ .SH ENVIRONMENT
+-When started with the \fB\-via\fR option, vncviewer reads the
++When started with the \fB\-via\fR option, vncviewer.turbo reads the
+ \fBVNC_VIA_CMD\fR environment variable, expands patterns beginning
+ with the "%" character, and uses the resulting command line to
+ establish the secure tunnel to the VNC gateway.  If \fBVNC_VIA_CMD\fR is not
+@@ -468,8 +468,8 @@
+ .B %R
+ remote TCP port number.
+ .SH SEE ALSO
+-\fBvncserver\fR(1), \fBXvnc\fR(1), \fBvncpasswd\fR(1),
+-\fBvncconnect\fR(1), \fBssh\fR(1)
++\fBvncserver.turbo\fR(1), \fBXvnc.turbo\fR(1), \fBvncpasswd.turbo\fR(1),
++\fBvncconnect.turbo\fR(1), \fBssh\fR(1)
+ .SH AUTHORS
+ VNC was originally developed at AT&T Laboratories Cambridge.  TightVNC
+ additions were implemented by Constantin Kaplinsky.  TurboVNC, based
+@@ -489,3 +489,7 @@
+ D. R. Commander <information@virtualgl.org>
+ .br
+ Craig Ruff <cruff@ucar.edu>
++
++\fBModified for Fedora packaging by:\fR
++.br
++Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+diff -Nru vnc_unixsrc.orig/Xvnc/programs/Xserver/Imakefile vnc_unixsrc/Xvnc/programs/Xserver/Imakefile
+--- vnc_unixsrc.orig/Xvnc/programs/Xserver/Imakefile	2012-02-22 22:51:16.313708299 -0500
++++ vnc_unixsrc/Xvnc/programs/Xserver/Imakefile	2012-02-22 22:58:06.009342249 -0500
+@@ -1712,7 +1712,7 @@
+ XVNC = hw/vnc/libvnc.a $(VNCLIBS)
+ XVNCLIBS = PreFbLibs $(XVNC) $(CFB) PostFbLibs
+ XVNCSYSLIBS = $(SYSLIBS) $(VNCSYSLIBS)
+-ServerTarget(Xvnc,$(XVNCDIRS),$(XVNCOBJS),$(XVNCLIBS),$(XVNCSYSLIBS))
++ServerTarget(Xvnc.turbo,$(XVNCDIRS),$(XVNCOBJS),$(XVNCLIBS),$(XVNCSYSLIBS))
+ #endif /* XvncServer */
+ 
+ 
+diff -Nru vnc_unixsrc.orig/Xvnc/programs/Xserver/Xvnc.man vnc_unixsrc/Xvnc/programs/Xserver/Xvnc.man
+--- vnc_unixsrc.orig/Xvnc/programs/Xserver/Xvnc.man	2012-02-22 22:51:16.318708289 -0500
++++ vnc_unixsrc/Xvnc/programs/Xserver/Xvnc.man	2012-02-22 22:58:06.010342247 -0500
+@@ -1,6 +1,6 @@
+ '\" t
+ .\" ** The above line should force tbl to be a preprocessor **
+-.\" Man page for Xvnc
++.\" Man page for Xvnc.turbo
+ .\"
+ .\" Copyright (C) 1998 Marcus.Brinkmann@ruhr-uni-bochum.de
+ .\" Copyright (C) 2000, 2001 Red Hat, Inc.
+@@ -13,12 +13,12 @@
+ .\" License as specified in the file LICENCE.TXT that comes with the
+ .\" TightVNC distribution.
+ .\"
+-.TH Xvnc 1 "June 2010" "" "TurboVNC"
++.TH Xvnc.turbo 1 "June 2010" "" "TurboVNC"
+ .SH NAME
+-Xvnc \- an X server providing VNC connectivity
++Xvnc.turbo \- an X server providing VNC connectivity
+ .SH SYNOPSIS
+ .TP
+-\fBXvnc\fR
++\fBXvnc.turbo\fR
+ [:\fIdisplay\fR]
+ [\-geometry \fIwidth\fRx\fIheight\fR] [\-depth \fIdepth\fR]
+ [\-pixelformat rgb\fINNN\fR|bgr\fINNN\fR] [\-udpinputport \fIport\fR]
+@@ -30,23 +30,23 @@
+ [\-interface ipaddr] [\-inetd] [\-compatiblekbd]
+ [\fIX-options\fR...]
+ .SH DESCRIPTION
+-\fBXvnc\fR is a VNC (Virtual Network Computing) server for Unix and Linux
++\fBXvnc.turbo\fR is a VNC (Virtual Network Computing) server for Unix and Linux
+ systems.  It acts like a normal X server, except that it sends its output
+ to a virtual rather than a physical display.  Remote machines can connect
+ to the VNC server and see/control the output of this virtual display
+-[see \fBvncviewer\fR(1).]  Xvnc is built using the XFree86 source code and
++[see \fBvncviewer.turbo\fR(1).]  Xvnc.turbo is built using the XFree86 source code and
+ shares many options with it.
+ 
+-Normally, you don't need to start Xvnc manually-- use the
+-\fBvncserver\fR(1) wrapper script instead.  This script sets reasonable
+-defaults for the Xvnc session, checks many error conditions, etc.
++Normally, you don't need to start Xvnc.turbo manually-- use the
++\fBvncserver.turbo\fR(1) wrapper script instead.  This script sets reasonable
++defaults for the Xvnc.turbo session, checks many error conditions, etc.
+ 
+ Please read the SECURITY CONCERNS section if you plan to use VNC on an
+ untrusted network.
+ .SH OPTIONS
+-Xvnc supports many standard X server options and a number of
++Xvnc.turbo supports many standard X server options and a number of
+ VNC-specific options.  To see which standard X server options are
+-supported, please look at the output of \fBXvnc\fR \fI\-help\fR and read
++supported, please look at the output of \fBXvnc.turbo\fR \fI\-help\fR and read
+ the \fBXserver\fR(1) manual page.
+ 
+ The VNC-specific options are as follows:
+@@ -55,10 +55,10 @@
+ Set width and height of the virtual X display.
+ .TP
+ \fB\-pixelformat\fR \fBrgb\fR\fINNN\fR|\fBbgr\fR\fINNN\fR
+-Specify the pixel format of the virtual X display.  Xvnc can use any pixel
++Specify the pixel format of the virtual X display.  Xvnc.turbo can use any pixel
+ format you choose, but if this pixel format does not match the pixel format
+-of the display on which vncviewer is running, then Xvnc will perform pixel
+-format conversion prior to sending images to vncviewer.  This can slow
++of the display on which vncviewer.turbo is running, then Xvnc.turbo will perform pixel
++format conversion prior to sending images to vncviewer.turbo.  This can slow
+ performance.  The default pixel format, rgb888, is equivalent to BGRA on little
+ endian systems or ARGB on big endian systems.  A pixel format of bgr888 is
+ equivalent to RGBA on little endian systems or ABGR on big endian systems.
+@@ -79,14 +79,14 @@
+ \fB\-rfbauth\fR \fIpasswd-file\fR
+ Enable the VNC password authentication method and read the VNC password from
+ the specified file.  The \fIpasswd-file\fR can be created using the
+-\fBvncpasswd\fR(1) utility.  This argument has no effect if
++\fBvncpasswd.turbo\fR(1) utility.  This argument has no effect if
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+ file and "vnc" is not listed as a permitted method.
+ .TP
+ \fB\-otpauth\fR
+ Enable the one-time password (OTP) authentication method.  One-time passwords
+ for full control or view-only access can be created using the
+-\fBvncpasswd\fR(1) utility.  OTPs are discarded by Xvnc immediately after they
++\fBvncpasswd.turbo\fR(1) utility.  OTPs are discarded by Xvnc.turbo immediately after they
+ are used, so an additional OTP must be generated before another user is allowed
+ to connect using this method.  This argument has no effect if
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+@@ -101,7 +101,7 @@
+ listed as a permitted method.
+ .TP
+ \fB\-noreverse\fR
+-Do not allow reverse VNC connections to be made from this Xvnc session.
++Do not allow reverse VNC connections to be made from this Xvnc.turbo session.
+ This option can be set for all TurboVNC sessions on this system by using the
+ \fIno-reverse-connections\fR directive in the authentication configuration
+ file.  See the AUTHENTICATION CONFIGURATION FILE section for more details.
+@@ -119,7 +119,7 @@
+ larger updates, thus saving network bandwidth.
+ .TP
+ \fB\-alr\fR \fItime\fR
+-Enable the automatic lossless refresh (ALR) feature for this Xvnc session and
++Enable the automatic lossless refresh (ALR) feature for this Xvnc.turbo session and
+ set the timeout to \fItime\fR seconds.  If ALR is enabled and no framebuffer
+ updates have been sent to a given client in the past \fItime\fR seconds, and if
+ "eligible" areas of the screen have been transmitted to that client using JPEG
+@@ -150,7 +150,7 @@
+ .TP
+ \fB\-dontdisconnect\fR
+ Don't disconnect existing users when a new non-shared connection is
+-established.  Instead, refuse the new connection.  The vncserver script
++established.  Instead, refuse the new connection.  The vncserver.turbo script
+ for TurboVNC sets this as the default, but you can modify the script
+ if you want to change the behavior.
+ .TP
+@@ -169,29 +169,29 @@
+ Listen only on the network interface with the given \fIipaddr\fR.
+ .TP
+ \fB\-inetd\fR
+-If Xvnc is launched by inetd, this option causes \fBXvnc\fR to redirect
++If Xvnc.turbo is launched by inetd, this option causes \fBXvnc.turbo\fR to redirect
+ network input/output to stdin/stdout.
+ .TP
+ \fB\-compatiblekbd\fR
+ Set META and ALT keys to the same X modifier flag, as in the original
+-version of Xvnc by AT&T labs (this option is specific to TightVNC/TurboVNC.)
++version of Xvnc.turbo by AT&T labs (this option is specific to TightVNC/TurboVNC.)
+ .SH AUTHENTICATION OVERVIEW
+-The Xvnc server supports the following methods for authenticating a VNC
++The Xvnc.turbo server supports the following methods for authenticating a VNC
+ client connection:
+ .IP \fBnone\fR
+-No authentication required.  Starting Xvnc with no authentication command-line
++No authentication required.  Starting Xvnc.turbo with no authentication command-line
+ arguments sets the authentication method to "none".  If
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+-file and "none" is not listed as a permitted method, then Xvnc exits with an
++file and "none" is not listed as a permitted method, then Xvnc.turbo exits with an
+ error.
+ 
+ This authentication method can be used with VNC clients that understand the
+ RFB "None" security type or the "Tight" security type with the "None"
+ authentication capability.
+ .IP \fBvnc\fR
+-VNC password authentication using a password set by the \fBvncpasswd\fR(1)
++VNC password authentication using a password set by the \fBvncpasswd.turbo\fR(1)
+ utility.  This method is enabled with the \fB-rfbauth\fR command-line argument
+-to Xvnc.  Additionally, if \fIpermitted-auth-methods\fR is specified in the
++to Xvnc.turbo.  Additionally, if \fIpermitted-auth-methods\fR is specified in the
+ authentication configuration file, then "vnc" must be listed as a permitted
+ method.
+ 
+@@ -200,8 +200,8 @@
+ capability.
+ .IP \fBotp\fR
+ One-time password (OTP) authentication using an OTP generated by the
+-\fBvncpasswd\fR(1) utility.  This method is enabled by passing a command-line
+-argument of \fB-otpauth\fR to Xvnc.  Additionally, if
++\fBvncpasswd.turbo\fR(1) utility.  This method is enabled by passing a command-line
++argument of \fB-otpauth\fR to Xvnc.turbo.  Additionally, if
+ \fIpermitted-auth-methods\fR is specified in the authentication configuration
+ file, then "otp" must be listed as a permitted method.
+ 
+@@ -215,12 +215,12 @@
+ can also be used to authenticate against any other user/password authentication
+ credentials that can be accessed through PAM.  The PAM user/password
+ authentication method is enabled by passing a command-line argument of
+-\fB-pamauth\fR to Xvnc.  Additionally, if \fIpermitted-auth-methods\fR is
++\fB-pamauth\fR to Xvnc.turbo.  Additionally, if \fIpermitted-auth-methods\fR is
+ specified in the authentication configuration file, then "pam-userpwd" must be
+ listed as a permitted method.  Also, a valid PAM service configuration must
+ have been created by the system administrator (see the AUTHENTICATION
+ CONFIGURATION FILE section for details), and on some systems, it may be
+-necessary to make the Xvnc binary setuid root.
++necessary to make the Xvnc.turbo binary setuid root.
+ 
+ This authentication method can be used only with VNC clients that understand
+ the RFB protocol "Tight" security type with the "Unix login" authentication
+@@ -232,7 +232,7 @@
+ \fBCommand-line authentication options\fR
+ The authentication options (\fB-rfbauth\fR, \fB-otpauth\fR and \fB-pamauth\fR)
+ allow you to request that the VNC password, OTP, and PAM user/password
+-authentication methods be enabled in Xvnc, respectively.  If none of these
++authentication methods be enabled in Xvnc.turbo, respectively.  If none of these
+ options is specified, then this is the equivalent of requesting that no
+ authentication be used.
+ .TP
+@@ -240,11 +240,11 @@
+ If the authentication configuration file exists, then the system administrator
+ can use the \fIpermitted-auth-methods\fR directive in this file to specify the
+ authentication methods that are allowed on the system.  An authentication
+-method must be both requested, by way of the Xvnc command-line options, and
++method must be both requested, by way of the Xvnc.turbo command-line options, and
+ permitted in order for it to be enabled.  If none of the authentication methods
+-meet this criteria, then Xvnc exits with an error.  For instance, if
++meet this criteria, then Xvnc.turbo exits with an error.  For instance, if
+ "pam-userpwd" is the only permitted authentication method, then it is an error
+-to start Xvnc without an argument of \fB-pamauth\fR.
++to start Xvnc.turbo without an argument of \fB-pamauth\fR.
+ 
+ The \fIpermitted-auth-methods\fR directive also allows you to specify the order
+ in which authentication capabilities are advertised to VNC clients.  For
+@@ -254,7 +254,7 @@
+ the TurboVNC Viewer will default to using standard VNC authentication.
+ 
+ If the authentication configuration file does not exist or
+-\fIpermitted-auth-methods\fR is not specified, then Xvnc behaves as if
++\fIpermitted-auth-methods\fR is not specified, then Xvnc.turbo behaves as if
+ \fIpermitted-auth-methods\fR was set to "vnc, otp, pam-userpwd, none".
+ .TP
+ \fBThe negotiated RFB protocol version\fR
+@@ -275,15 +275,15 @@
+ login authentication capabilities, regardless of which the server advertises as
+ the default.
+ .P
+-You can examine the Xvnc log file to see details of authentication
++You can examine the Xvnc.turbo log file to see details of authentication
+ processing, including the authentication methods, RFB protocol versions,
+ and security types that have been enabled.
+ .SH AUTHENTICATION CONFIGURATION FILE
+-At startup, Xvnc reads authentication configuration information from
++At startup, Xvnc.turbo reads authentication configuration information from
+ \fB/etc/turbovncserver-auth.conf\fR.  For security reasons, this pathname
+-is hard-coded into the Xvnc executable and cannot be changed without rebuilding
+-Xvnc.  If present, the authentication configuration file must be owned by
+-either root or by the user who started the Xvnc server, and the file may not be
++is hard-coded into the Xvnc.turbo executable and cannot be changed without rebuilding
++Xvnc.turbo.  If present, the authentication configuration file must be owned by
++either root or by the user who started the Xvnc.turbo server, and the file may not be
+ writable by others.
+ 
+ Comment lines start with a hash (#) character.  Spaces and tabs are
+@@ -292,21 +292,21 @@
+ 
+ .IP \fIenable-user-acl\fR
+ If the "pam-userpwd" authentication method is used, then this directive enables
+-the Xvnc server's internal user access control list (ACL) to further limit
++the Xvnc.turbo server's internal user access control list (ACL) to further limit
+ which users will be permitted to attempt PAM authentication.  Users can be
+-added to or removed from this list using the \fBvncpasswd\fR(1) utility.  The
+-user who started the Xvnc server will automatically be added to the access
++added to or removed from this list using the \fBvncpasswd.turbo\fR(1) utility.  The
++user who started the Xvnc.turbo server will automatically be added to the access
+ control list.
+ .IP \fIno-reverse-connections\fR
+ Do not allow reverse connections to be made from any TurboVNC server running on
+-this machine.  This causes Xvnc to ignore requests from the
+-\fBvncconnect\fR(1) utility.
++this machine.  This causes Xvnc.turbo to ignore requests from the
++\fBvncconnect.turbo\fR(1) utility.
+ .IP \fIno-remote-connections\fR
+ Do not allow inbound remote connections to be made to any TurboVNC server
+ running on this machine.  Only connections from localhost can be made, which
+ effectively forces the use of SSH tunneling to make inbound remote connections.
+ .IP \fIpam-service-name\fR=\fIsvcname\fR
+-Sets the service name to be used when Xvnc performs PAM authentication.  The
++Sets the service name to be used when Xvnc.turbo performs PAM authentication.  The
+ default service name is \fIturbovnc\fR.  This typically corresponds to a file
+ in \fB/etc/pam.d\fR or to a token in \fB/etc/pam.conf\fR.  For instance, if
+ your system has a file named \fB/etc/pam.d/passwd\fR, then copying this file to
+@@ -316,18 +316,18 @@
+ Defines the initial set of permitted authentication methods.  Multiple
+ comma-separated methods may be specified.  Accepted values for \fImethod\fR
+ are: \fInone\fR, \fIvnc\fR, \fIotp\fR, and \fIpam-userpwd\fR.  The order in
+-which these methods are specified defines the order in which Xvnc will
++which these methods are specified defines the order in which Xvnc.turbo will
+ advertise the corresponding RFB security types and authentication capabilities
+ to the VNC client.  This ordering may affect which authentication capability
+ the VNC client chooses as its default.
+ .SH SECURITY CONCERNS
+ .P
+ There are many security problems inherent in VNC.  Thus, it is
+-recommended that you restrict network access to Xvnc servers from untrusted
+-network addresses.  Probably the best way to secure an Xvnc server is to
++recommended that you restrict network access to Xvnc.turbo servers from untrusted
++network addresses.  Probably the best way to secure an Xvnc.turbo server is to
+ allow only loopback connections from the server machine (using the
+ \fB\-localhost\fR option) and to use SSH tunneling for remote access
+-to the Xvnc server.  For details on using TurboVNC with SSH tunneling, see the
++to the Xvnc.turbo server.  For details on using TurboVNC with SSH tunneling, see the
+ TurboVNC User's Guide.
+ .P
+ It is incumbent upon the system administrator to ensure that an authentication
+@@ -338,8 +338,8 @@
+ the use of Unix login authentication will result in Unix passwords being sent
+ unencrypted over the network.
+ .SH SEE ALSO
+-\fBvncserver\fR(1), \fBvncviewer\fR(1), \fBvncpasswd\fR(1),
+-\fBvncconnect\fR(1), \fBsshd\fR(1)
++\fBvncserver.turbo\fR(1), \fBvncviewer.turbo\fR(1), \fBvncpasswd.turbo\fR(1),
++\fBvncconnect.turbo\fR(1), \fBsshd\fR(1)
+ .SH AUTHORS
+ VNC was originally developed at AT&T Laboratories Cambridge.  TightVNC
+ additions were implemented by Constantin Kaplinsky.  TurboVNC, based
+@@ -357,3 +357,7 @@
+ D. R. Commander <information@virtualgl.org>
+ .br
+ Craig Ruff <cruff@ucar.edu>
++
++\fBModified for Fedora packaging by:\fR
++.br
++Xiao-Long Chen <chenxiaolong@cxl.epac.to>

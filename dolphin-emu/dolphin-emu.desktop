@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dolphin Emulator
+Name[zh_CN]=海豚模拟器 (Dolphin)
+Comment=A Wii, Gamecube, and Triforce Emulator
+Comment[zh_CN]=Wii, Gamecube, 和 Triforce 的模拟器
+Icon=dolphin-emu
+Exec=dolphin-emu
+Categories=Game;Emulator;GTK;

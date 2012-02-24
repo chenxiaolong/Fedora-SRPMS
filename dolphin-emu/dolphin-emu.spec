@@ -109,6 +109,9 @@ install -dm755 $RPM_BUILD_ROOT%{_datadir}/pixmaps/
 install -m644 ../Source/Core/DolphinWX/resources/Dolphin.xpm \
   $RPM_BUILD_ROOT%{_datadir}/pixmaps/%{name}.xpm
 
+# Remove empty file (done in git commit: b251880d8b3887e6d4119559c5efa1fd39a075b2)
+rm $RPM_BUILD_ROOT%{_datadir}/%{name}/user/GameConfig/WBEEJV.ini
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT

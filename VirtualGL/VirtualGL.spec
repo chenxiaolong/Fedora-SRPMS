@@ -1,6 +1,6 @@
 Name:		VirtualGL
 Version:	2.3
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	A toolkit for displaying OpenGL applications to thin clients
 
 Group:		User Interface/X
@@ -136,7 +136,6 @@ getent group vglusers >/dev/null || groupadd -r vglusers
 
 %files -n lib%{name}
 %defattr(-,root,root,-)
-%doc ChangeLog.txt
 # Libraries
 %{_libdir}/libdlfaker.so
 %{_libdir}/libgefaker.so
@@ -147,13 +146,15 @@ getent group vglusers >/dev/null || groupadd -r vglusers
 
 %files -n lib%{name}-devel
 %defattr(-,root,root,-)
-%doc ChangeLog.txt
 # Source headers
 %{_includedir}/rr.h
 %{_includedir}/rrtransport.h
 
 
 %changelog
+* Fri Feb 24 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3-5
+- Do not install documentation in multilib packages
+
 * Mon Feb 20 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3-4
 - Unconfigure VirtualGL before package removal
 - vglusers should be a system group

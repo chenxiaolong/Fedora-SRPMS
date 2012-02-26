@@ -1,6 +1,6 @@
 Name:		soundkonverter
 Version:	1.3.2
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	A frontend to various audio converters
 
 Group:		Applications/Multimedia
@@ -14,6 +14,28 @@ BuildRequires:	kdemultimedia-devel
 BuildRequires:	taglib-devel
 BuildRequires:	gettext
 
+# As per Kevin Kofler's suggestion, hard require the packages needed from the
+# repository.
+# From Fedora:
+Requires:	cdparanoia
+Requires:	flac
+Requires:	fluidsynth
+Requires:	libmpcdec
+Requires:	mppenc
+Requires:	speex
+Requires:	timidity++
+Requires:	vorbis-tools
+Requires:	vorbisgain
+Requires:	wavpack
+# From RPMFusion
+Requires:	faac
+Requires:	ffmpeg
+Requires:	lame
+Requires:	mac
+Requires:	mp3gain
+Requires:	mplayer
+Requires:	twolame
+
 %description
 soundKonverter is a frontend to various audio converters.
 
@@ -21,38 +43,6 @@ The key features are:
 - Audio conversion
 - Replay Gain calculation
 - CD ripping
-
-To enable all functionality, the following packages are required:
-
-* cdparanoia
-* flac
-* fluidsynth
-* libmpcdec
-* mppenc
-* speex
-* timidity++
-* vorbis-tools
-* vorbisgain
-* wavpack
-
-(Additional from rpmfusion)
-* faac
-* ffmpeg
-* lame
-* mac
-* mp3gain
-* mplayer
-* twolame
-
-(Additional from source)
-
-* neroaac
-* flake
-* mppdec
-* musepack-tools
-* shorten
-* aacgain
-* mpcgain
 
 soundKonverter has nothing to do with the soundconverter project, the very
 similar name is just an unfortunate coincident.
@@ -162,6 +152,10 @@ desktop-file-validate $RPM_BUILD_ROOT%{_datadir}/applications/kde4/%{name}.deskt
 
 
 %changelog
+* Sun Feb 26 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1.3.1-2
+- Fix description (remove list of patent-encumbered packages)
+- Hard require the codecs needed for the plugins
+
 * Sun Feb 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1.3.1-1
 - Initial release
 - Version 1.3.1

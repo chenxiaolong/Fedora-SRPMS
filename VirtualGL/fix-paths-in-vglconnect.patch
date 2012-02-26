@@ -1,0 +1,48 @@
+Change /opt/VirtualGL to /usr
+diff -Nru VirtualGL-2.3.orig/rr/vglconnect VirtualGL-2.3/rr/vglconnect
+--- VirtualGL-2.3.orig/rr/vglconnect	2012-02-25 00:12:07.914553456 -0500
++++ VirtualGL-2.3/rr/vglconnect	2012-02-25 00:19:58.927786500 -0500
+@@ -44,7 +44,7 @@
+ 	echo "-g = Use gsissh from Globus Toolkit to make all SSh connections"
+ 	echo "-force = Force a new vglclient instance (use with caution)"
+ 	echo "-bindir <d> = Path in which the VGL executables and scripts are installed on"
+-	echo "              the server machine (default: /opt/VirtualGL/bin).  Can also be"
++	echo "              the server machine (default: /usr/bin).  Can also be"
+ 	echo "              set with the VGL_BINDIR environment variable on the client"
+ 	echo "              machine."
+ 	echo
+@@ -52,7 +52,7 @@
+ }
+ 
+ if [ -z $VGL_BINDIR ]; then
+-	VGL_BINDIR=/opt/VirtualGL/bin
++	VGL_BINDIR=/usr/bin
+ fi
+ 
+ while [ $# -gt 0 ]
+@@ -110,8 +110,8 @@
+ else
+ 	VGLCLIENT=`dirname $0`/vglclient
+ 	if [ ! -x $VGLCLIENT ]; then
+-		if [ -x /opt/VirtualGL/bin/vglclient ]; then
+-			VGLCLIENT=/opt/VirtualGL/bin/vglclient
++		if [ -x /usr/bin/vglclient ]; then
++			VGLCLIENT=/usr/bin/vglclient
+ 		else
+ 			VGLCLIENT=vglclient
+ 		fi
+@@ -143,12 +143,8 @@
+ fi
+ 
+ XAUTH=xauth
+-if [ -x /usr/X11R6/bin/xauth ]; then
+-	XAUTH=/usr/X11R6/bin/xauth
+-else
+-	if [ -x /usr/openwin/bin/xauth ]; then
+-		XAUTH=/usr/openwin/bin/xauth
+-	fi
++if [ -x /usr/bin/xauth ]; then
++	XAUTH=/usr/bin/xauth
+ fi
+ XAUTHFILE=`maketemp vglconnect`
+ $XAUTH -f $XAUTHFILE generate $DISPLAY . trusted timeout 0

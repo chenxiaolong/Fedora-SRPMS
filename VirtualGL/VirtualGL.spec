@@ -1,6 +1,6 @@
 Name:		VirtualGL
 Version:	2.3
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	A toolkit for displaying OpenGL applications to thin clients
 
 Group:		User Interface/X
@@ -8,12 +8,20 @@ License:	wxWidgets
 URL:		http://www.virtualgl.org/
 Source0:	http://downloads.sourceforge.net/project/virtualgl/VirtualGL/%{version}/VirtualGL-%{version}.tar.gz
 
+Patch0:		add-multilib-support-in-vglrun.patch
+Patch1:		fix-paths-in-vglconnect.patch
+Patch2:		fix-paths-in-vglgenkey.patch
+Patch3:		fix-paths-in-vgllogin.patch
+Patch4:		fix-vglserver_config.patch
+
 BuildRequires:	mesa-libGL-devel
 BuildRequires:	mesa-libGLU-devel
 BuildRequires:	turbojpeg-devel
 BuildRequires:	cmake
 
 Requires:	lib%{name}%{?_isa} = %{version}-%{release}
+# For vglconnect
+Requires:	openssh-clients
 Requires(pre):	shadow-utils
 
 
@@ -68,6 +76,11 @@ The lib%{name}-devel package contains the source header files for %{name}.
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
 
 
 %build
@@ -90,9 +103,6 @@ make install DESTDIR=$RPM_BUILD_ROOT
 
 # Rename glxinfo binary to make it not conflict with the one from glx-utils
 mv $RPM_BUILD_ROOT%{_bindir}/glxinfo{,_vgl}
-
-# /bin/sh is not a symlink to /bin/bash
-sed -i '1 s/sh/bash/' $RPM_BUILD_ROOT%{_bindir}/vglserver_config
 
 
 %clean
@@ -152,6 +162,11 @@ getent group vglusers >/dev/null || groupadd -r vglusers
 
 
 %changelog
+* Sun Feb 26 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3-6
+- Add patches to add multilib support in vglrun
+- Add patches to fix paths in the scripts
+- Add patches to remove code for other Unix-like operating systems
+
 * Fri Feb 24 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3-5
 - Do not install documentation in multilib packages
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=A tool for securing communications between a client and a DNS resolver.
+After=syslog.target network.target
+
+[Service]
+Type=simple
+StandardOutput=syslog
+SyslogIdentifier=%p
+EnvironmentFile=/etc/sysconfig/dnscrypt-proxy
+ExecStart=/usr/sbin/dnscrypt-proxy -a $DNSCRYPT_LISTEN_IP -P $DNSCRYPT_LISTEN_PORT -u $DNSCRYPT_USER
+
+[Install]
+WantedBy=multi-user.target

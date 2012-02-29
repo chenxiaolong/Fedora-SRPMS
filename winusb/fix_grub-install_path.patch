@@ -1,0 +1,13 @@
+grub-install is called grub2-install in Fedora
+diff -Nru winusb-1.0.3.orig/src/winusb winusb-1.0.3/src/winusb
+--- winusb-1.0.3.orig/src/winusb	2012-02-29 16:09:20.324610692 -0500
++++ winusb-1.0.3/src/winusb	2012-02-29 16:48:42.829299857 -0500
+@@ -386,7 +386,7 @@
+ 
+ # Grub
+ echo "Installing grub..."
+-grub-install --root-directory="$partitionMountPath" "$device" 
++grub2-install --root-directory="$partitionMountPath" "$device" 
+ 
+ uuid=$(blkid -o value -s UUID "$partition") 
+ 

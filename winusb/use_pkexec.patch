@@ -1,0 +1,13 @@
+Use PolicyKit's pkexec, since gksudo isn't packaged in Fedora
+diff -Nru winusb-1.0.3.orig/src/MainPanel.cpp winusb-1.0.3/src/MainPanel.cpp
+--- winusb-1.0.3.orig/src/MainPanel.cpp	2012-02-29 16:09:20.322610696 -0500
++++ winusb-1.0.3/src/MainPanel.cpp	2012-02-29 16:13:53.883070384 -0500
+@@ -242,7 +242,7 @@
+ 
+ 
+         //PipeManager pipe(std::string("gksudo --description 'WinUSB' -- \"$(readlink -f '") + StrWxToStd(findFile(_T("data/makebootiso"))) + "')\" --noColor --forGui --format '" + iso + "' '" + device + "' 2>&1");
+-        PipeManager pipe(std::string("gksudo --description 'WinUSB' -- winusb --noColor --forGui --format '") + iso + "' '" + device + "' 2>&1");
++        PipeManager pipe(std::string("pkexec winusb --noColor --forGui --format '") + iso + "' '" + device + "' 2>&1");
+ 
+         wxProgressDialog *dialog = new wxProgressDialog(_("Installing.."), _("Please wait..."), 100, GetParent(), wxPD_APP_MODAL | wxPD_SMOOTH | wxPD_CAN_ABORT);
+ 

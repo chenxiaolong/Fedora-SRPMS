@@ -1,0 +1,46 @@
+Author: Evgeni Golov <sargentd@die-welt.net>
+Description: make the Makefile work better with debian kernel-package
+Index: tp-smapi/Makefile
+===================================================================
+--- tp-smapi.orig/Makefile	2011-07-28 19:10:45.000000000 +0200
++++ tp-smapi/Makefile	2011-07-28 19:18:07.936579754 +0200
+@@ -1,12 +1,13 @@
+ ifndef TP_MODULES
+ # This part runs as a normal, top-level Makefile:
+ X:=$(shell false)
+-KVER        := $(shell uname -r)
++PWD         := $(shell pwd)
++#KVER        := $(shell uname -r)
+ KBASE       := /lib/modules/$(KVER)
+-KSRC        := $(KBASE)/source
+-KBUILD      := $(KBASE)/build
++KSRC        ?= $(PWD)
++#KBUILD      := $(KBASE)/build
++KBUILD      := $(KSRC)
+ MOD_DIR     := $(KBASE)/kernel
+-PWD         := $(shell pwd)
+ IDIR        := include/linux
+ TP_DIR      := drivers/misc
+ TP_MODULES  := thinkpad_ec.o tp_smapi.o
+@@ -25,6 +26,12 @@
+ THINKPAD_EC_PARAM := 
+ endif
+ 
++ifneq ($(KERNELRELEASE),)
++	TP_MODULES  += hdaps.o
++	obj-m  := $(TP_MODULES)
++else
++endif
++
+ DEBUG := 0
+ 
+ .PHONY: default clean modules load unload install patch check_hdaps mk-hdaps.diff
+@@ -83,7 +90,7 @@
+ #####################################################################
+ # Generate a stand-alone kernel patch
+ 
+-TP_VER := ${shell sed -ne 's/^\#define TP_VERSION \"\(.*\)\"/\1/gp' tp_smapi.c}
++#TP_VER := ${shell sed -ne 's/^\#define TP_VERSION \"\(.*\)\"/\1/gp' tp_smapi.c}
+ ORG    := a
+ NEW    := b
+ PATCH  := tp_smapi-$(TP_VER)-for-$(KVER).patch

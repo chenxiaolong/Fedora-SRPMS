@@ -1,0 +1,26 @@
+From 1d185c256e906005657590f33a4e86f2152402be Mon Sep 17 00:00:00 2001
+From: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+Date: Tue, 6 Mar 2012 01:59:31 -0500
+Subject: [PATCH] Modify Makefile for Fedora kmod packaging
+
+---
+ Makefile |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index bd838ef..16ab47f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -2,8 +2,7 @@ TARGET 		:= nvidiabl
+ VERSION		:= 0.73
+ RELEASE_NAME	:= $(TARGET)-$(VERSION)
+ 
+-KVER		:= $(shell uname -r)
+-KDIR		?= /lib/modules/$(KVER)/build
++KDIR		?= /lib/modules/$(KVER)
+ PWD		:= $(shell pwd)
+ LOC		:= /kernel/drivers/video/backlight
+ MODPATH		:= $(DESTDIR)/lib/modules/$(KVER)$(LOC)
+-- 
+1.7.7.6
+

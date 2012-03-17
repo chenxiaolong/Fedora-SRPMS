@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Notepad
+Comment=Text Editor
+Exec=notepad
+Icon=notepad
+Terminal=false
+Type=Application
+Categories=X-Wine;

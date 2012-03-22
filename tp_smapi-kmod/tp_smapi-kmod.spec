@@ -3,7 +3,7 @@
 Name:		tp_smapi-kmod
 
 Version:	0.41
-Release:	1%{?dist}.1
+Release:	2%{?dist}.1
 Summary:	Lenovo/IBM ThinkPad hardware functions kernel module
 
 Group:		System Environment/Kernel
@@ -12,6 +12,7 @@ License:	GPL+
 # Original development page: http://tpctl.sf.net/
 URL:		https://github.com/evgeni/tp_smapi
 Source0:	https://github.com/downloads/evgeni/tp_smapi/tp_smapi-%{version}.tar.gz
+Source1:	%{name}.conf
 
 # Debian patch for the Makefile to allow compilation for kernel versions other
 # than the one currently running.
@@ -101,13 +102,21 @@ for kernel_version in %{?kernel_versions}; do
 done
 %{?akmod_install}
 
+# Install configuration file to load module at startup
+install -dm755 $RPM_BUILD_ROOT%{_sysconfdir}/modules-load.d/
+install -m644 %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/modules-load.d/
+
 
 %files common
 %defattr(-,root,root,-)
 %doc tp_smapi-%{version}/{CHANGES,README,TODO}
+%config(noreplace) %{_sysconfdir}/modules-load.d/%{name}.conf
 
 
 %changelog
+* Sat Mar 17 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.41-2.1
+- Include configuration file for systemd that loads the module at boot
+
 * Mon Mar 05 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.41-1.1
 - Initial release
 - Version 0.41

@@ -1,0 +1,67 @@
+From 9b8c0acacc98134733658f7b7cc1ffbde7d58589 Mon Sep 17 00:00:00 2001
+From: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+Date: Tue, 3 Apr 2012 11:21:38 -0400
+Subject: [PATCH 1/4] Use /etc/sysconfig on Fedora
+
+---
+ Makefile      |    2 +-
+ README        |    2 +-
+ tlp-functions |    2 +-
+ tlp-usb-udev  |    2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 0de9b34..3ed01b2 100644
+--- a/Makefile
++++ b/Makefile
+@@ -11,7 +11,7 @@ NMDSP = $(DESTDIR)/etc/NetworkManager/dispatcher.d
+ # Location of TLP's config file
+ # Hint: solely changing this will render the installation unusable,
+ # you have to change constant definitions in scripts too!
+-CONFFILE = $(DESTDIR)/etc/default/tlp
++CONFFILE = $(DESTDIR)/etc/sysconfig/tlp
+ 
+ all: 
+ 	@/bin/true 
+diff --git a/README b/README
+index 88ce005..d42d8a1 100644
+--- a/README
++++ b/README
+@@ -28,7 +28,7 @@ Additional functions:
+ - Battery charge thresholds - ThinkPads only
+ - Recalibrate battery - ThinkPads only
+ 
+-All TLP settings are stored in /etc/default/tlp. The default configuration
++All TLP settings are stored in /etc/sysconfig/tlp. The default configuration
+ provides optimized power saving out of the box. 
+ 
+ Read the the full documentation at:
+diff --git a/tlp-functions b/tlp-functions
+index 0c80ad9..376c89c 100755
+--- a/tlp-functions
++++ b/tlp-functions
+@@ -12,7 +12,7 @@
+ # Constants
+ readonly TLPVER=0.3.6
+ 
+-readonly CONFFILE=/etc/default/tlp
++readonly CONFFILE=/etc/sysconfig/tlp
+ readonly RUNDIR=/var/run/tlp
+ 
+ readonly ACPWR=on_ac_power
+diff --git a/tlp-usb-udev b/tlp-usb-udev
+index 68310cd..18cc357 100755
+--- a/tlp-usb-udev
++++ b/tlp-usb-udev
+@@ -14,7 +14,7 @@ readonly USB_TIMEOUT_MS=2000
+ readonly RUNDIR=/var/run/tlp
+ readonly USB_DONE=usb_done
+ 
+-readonly CONFFILE=/etc/default/tlp
++readonly CONFFILE=/etc/sysconfig/tlp
+ 
+ # --- Subroutines
+ patinstr () { # $1: pattern, $2: target -- test if pattern matches part of target
+-- 
+1.7.7.6
+

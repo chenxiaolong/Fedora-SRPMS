@@ -1,0 +1,2590 @@
+From 683662c11d98f074c27a5fe10f02cb18dfab7c2d Mon Sep 17 00:00:00 2001
+From: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+Date: Tue, 3 Apr 2012 11:36:13 -0400
+Subject: [PATCH 2/4] Do not hardcode paths and use libexecdir
+
+---
+ 48tlp-rdw-lock    |   33 ----
+ 48tlp-rdw-lock.in |   33 ++++
+ 49bay             |   81 ---------
+ 49bay.in          |   81 +++++++++
+ 49wwan            |   54 ------
+ 49wwan.in         |   54 ++++++
+ Makefile          |   29 +++-
+ tlp               |  176 ------------------
+ tlp-nop           |    4 -
+ tlp-nop.in        |    4 +
+ tlp-rdw-nm        |  142 ---------------
+ tlp-rdw-nm.in     |  142 +++++++++++++++
+ tlp-rdw-udev      |   57 ------
+ tlp-rdw-udev.in   |   57 ++++++
+ tlp-rf            |   52 ------
+ tlp-rf.in         |   52 ++++++
+ tlp-stat          |  510 -----------------------------------------------------
+ tlp-stat.in       |  510 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tlp.in            |  176 ++++++++++++++++++
+ tlp.init          |    4 +-
+ tlp.upstart       |   64 -------
+ tlp.upstart.in    |   64 +++++++
+ 22 files changed, 1199 insertions(+), 1180 deletions(-)
+ delete mode 100755 48tlp-rdw-lock
+ create mode 100644 48tlp-rdw-lock.in
+ delete mode 100755 49bay
+ create mode 100644 49bay.in
+ delete mode 100755 49wwan
+ create mode 100644 49wwan.in
+ delete mode 100755 tlp
+ delete mode 100755 tlp-nop
+ create mode 100644 tlp-nop.in
+ delete mode 100755 tlp-rdw-nm
+ create mode 100644 tlp-rdw-nm.in
+ delete mode 100755 tlp-rdw-udev
+ create mode 100644 tlp-rdw-udev.in
+ delete mode 100755 tlp-rf
+ create mode 100644 tlp-rf.in
+ delete mode 100755 tlp-stat
+ create mode 100644 tlp-stat.in
+ create mode 100644 tlp.in
+ delete mode 100644 tlp.upstart
+ create mode 100644 tlp.upstart.in
+
+diff --git a/48tlp-rdw-lock b/48tlp-rdw-lock
+deleted file mode 100755
+index 47cf338..0000000
+--- a/48tlp-rdw-lock
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#!/bin/sh
+-# tlp-rdw - lock events during suspend/hibernate cycle
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-. "${PM_FUNCTIONS}"
+-
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-
+-[ -f $LIB ] || exit 0
+-. $LIB
+-
+-read_defaults || exit 0
+-
+-[ "$TLP_ENABLE" = "1" ] || exit 0
+-
+-echo_debug "pm" "48tlp-rdw-lock.$1"
+-
+-case $1 in
+-	hibernate|suspend)
+-		set_run_flag $LOCK_RDW
+-		;;
+-
+-	thaw|resume)
+-		reset_run_flag $LOCK_RDW
+-		;;
+-
+-	*) exit $NA
+-		;;
+-esac
+-
+-exit 0
+diff --git a/48tlp-rdw-lock.in b/48tlp-rdw-lock.in
+new file mode 100644
+index 0000000..001d7fe
+--- /dev/null
++++ b/48tlp-rdw-lock.in
+@@ -0,0 +1,33 @@
++#!/bin/sh
++# tlp-rdw - lock events during suspend/hibernate cycle
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++. "${PM_FUNCTIONS}"
++
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++
++[ -f $LIB ] || exit 0
++. $LIB
++
++read_defaults || exit 0
++
++[ "$TLP_ENABLE" = "1" ] || exit 0
++
++echo_debug "pm" "48tlp-rdw-lock.$1"
++
++case $1 in
++	hibernate|suspend)
++		set_run_flag $LOCK_RDW
++		;;
++
++	thaw|resume)
++		reset_run_flag $LOCK_RDW
++		;;
++
++	*) exit $NA
++		;;
++esac
++
++exit 0
+diff --git a/49bay b/49bay
+deleted file mode 100755
+index d298be5..0000000
+--- a/49bay
++++ /dev/null
+@@ -1,81 +0,0 @@
+-#!/bin/sh
+-# tlp - disable Ultrabay on resume if it was disabled on the preceding suspend
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-. "${PM_FUNCTIONS}"
+-
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly STATE=tp_bay_off
+-
+-get_bay () {
+-	dock=$(grep -l ata_bay /sys/devices/platform/dock.?/type)
+-	dock=${dock%%/type}
+-	if [ ! -d "$dock" ]; then
+-		dock=""
+-	fi
+-}
+-
+-suspend_bay () {
+-	get_bay
+-	if [ -n "$dock" ]; then
+-		if [ -e $dock/docked ]; then
+-			if [ "$(cat $dock/docked)" = "0" ]; then
+-				savestate $STATE 1
+-				echo_debug "pm" "49bay.suspend: bay=off"
+-			else
+-				echo_debug "pm" "49bay.suspend: bay=on"
+-			fi
+-		fi
+-	fi
+-}
+-
+-resume_bay () {
+-	local cnt
+-	local rc
+-	
+-	state_exists $STATE || return
+-	[ "$(restorestate $STATE)" = "1" ] || return
+-		
+-	get_bay
+-	if [ -n "$dock" ]; then
+-		if [ -e $dock/undock ]; then
+-			cnt=5
+-			rc=1
+-			until [ $rc = 0 -o $cnt = 0 ]; do
+-				cnt=$((cnt - 1))
+-				echo 1 > $dock/undock
+-				rc=$?
+-				[ $rc = 0 ] || sleep 0.5
+-			done
+-			echo_debug "pm" "49bay.resume_bayoff: rc=$rc"
+-			return 0
+-		fi
+-	fi
+-}
+-
+-[ -f $LIB ] || exit 0
+-. $LIB
+-
+-read_defaults || exit 0
+-
+-[ "$TLP_ENABLE" = "1" ] && [ "$BAY_POWEROFF_ON_BAT" = "1" ] || exit 0
+-
+-echo_debug "49bay $1"
+-
+-case $1 in
+-	hibernate|suspend)
+-		suspend_bay
+-		;;
+-		
+-	thaw|resume)
+-		resume_bay
+-		;;
+-		
+-	*) exit $NA
+-		;;
+-esac
+-
+-exit 0
+-
+diff --git a/49bay.in b/49bay.in
+new file mode 100644
+index 0000000..b26c47f
+--- /dev/null
++++ b/49bay.in
+@@ -0,0 +1,81 @@
++#!/bin/sh
++# tlp - disable Ultrabay on resume if it was disabled on the preceding suspend
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++. "${PM_FUNCTIONS}"
++
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly STATE=tp_bay_off
++
++get_bay () {
++	dock=$(grep -l ata_bay /sys/devices/platform/dock.?/type)
++	dock=${dock%%/type}
++	if [ ! -d "$dock" ]; then
++		dock=""
++	fi
++}
++
++suspend_bay () {
++	get_bay
++	if [ -n "$dock" ]; then
++		if [ -e $dock/docked ]; then
++			if [ "$(cat $dock/docked)" = "0" ]; then
++				savestate $STATE 1
++				echo_debug "pm" "49bay.suspend: bay=off"
++			else
++				echo_debug "pm" "49bay.suspend: bay=on"
++			fi
++		fi
++	fi
++}
++
++resume_bay () {
++	local cnt
++	local rc
++	
++	state_exists $STATE || return
++	[ "$(restorestate $STATE)" = "1" ] || return
++		
++	get_bay
++	if [ -n "$dock" ]; then
++		if [ -e $dock/undock ]; then
++			cnt=5
++			rc=1
++			until [ $rc = 0 -o $cnt = 0 ]; do
++				cnt=$((cnt - 1))
++				echo 1 > $dock/undock
++				rc=$?
++				[ $rc = 0 ] || sleep 0.5
++			done
++			echo_debug "pm" "49bay.resume_bayoff: rc=$rc"
++			return 0
++		fi
++	fi
++}
++
++[ -f $LIB ] || exit 0
++. $LIB
++
++read_defaults || exit 0
++
++[ "$TLP_ENABLE" = "1" ] && [ "$BAY_POWEROFF_ON_BAT" = "1" ] || exit 0
++
++echo_debug "49bay $1"
++
++case $1 in
++	hibernate|suspend)
++		suspend_bay
++		;;
++		
++	thaw|resume)
++		resume_bay
++		;;
++		
++	*) exit $NA
++		;;
++esac
++
++exit 0
++
+diff --git a/49wwan b/49wwan
+deleted file mode 100755
+index c6014d7..0000000
+--- a/49wwan
++++ /dev/null
+@@ -1,54 +0,0 @@
+-#!/bin/sh
+-# tlp - restore ThinkPad wwan state after suspend / hibernate
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-. "${PM_FUNCTIONS}"
+-
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-
+-suspend_device () {
+-	local state
+-	
+-	state=$(cat $2)
+-    echo 0 > $2 # workaround: switch off before suspend
+-	savestate $1 $state
+-	echo_debug "pm" "49wwan.suspend wwan=$state"
+-}
+-
+-resume_device () {
+-	state_exists $1 || return
+-	restorestate $1 > $2
+-	echo_debug "pm" "49wwan.resume wwan=$(cat $2)"
+-}
+-
+-[ -f $LIB ] || exit 0
+-[ -f $RFLIB ] || exit 0
+-. $LIB
+-. $RFLIB
+-
+-read_defaults || exit 0
+-
+-[ "$TLP_ENABLE" = "1" ] || exit 0
+-
+-echo_debug "pm" "49wwan.$1"
+-
+-get_devc wwan
+-[ -n "$devc" ] || exit 0
+-
+-case $1 in
+-	hibernate|suspend)
+-		suspend_device tp_wwan $devc
+-		;;
+-		
+-	thaw|resume)
+-		resume_device tp_wwan $devc
+-		;;
+-		
+-	*) exit $NA
+-		;;
+-esac
+-
+-exit 0
+diff --git a/49wwan.in b/49wwan.in
+new file mode 100644
+index 0000000..2534693
+--- /dev/null
++++ b/49wwan.in
+@@ -0,0 +1,54 @@
++#!/bin/sh
++# tlp - restore ThinkPad wwan state after suspend / hibernate
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++. "${PM_FUNCTIONS}"
++
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++
++suspend_device () {
++	local state
++	
++	state=$(cat $2)
++    echo 0 > $2 # workaround: switch off before suspend
++	savestate $1 $state
++	echo_debug "pm" "49wwan.suspend wwan=$state"
++}
++
++resume_device () {
++	state_exists $1 || return
++	restorestate $1 > $2
++	echo_debug "pm" "49wwan.resume wwan=$(cat $2)"
++}
++
++[ -f $LIB ] || exit 0
++[ -f $RFLIB ] || exit 0
++. $LIB
++. $RFLIB
++
++read_defaults || exit 0
++
++[ "$TLP_ENABLE" = "1" ] || exit 0
++
++echo_debug "pm" "49wwan.$1"
++
++get_devc wwan
++[ -n "$devc" ] || exit 0
++
++case $1 in
++	hibernate|suspend)
++		suspend_device tp_wwan $devc
++		;;
++		
++	thaw|resume)
++		resume_device tp_wwan $devc
++		;;
++		
++	*) exit $NA
++		;;
++esac
++
++exit 0
+diff --git a/Makefile b/Makefile
+index 3ed01b2..88c29a1 100644
+--- a/Makefile
++++ b/Makefile
+@@ -3,8 +3,8 @@
+ SBIN  = $(DESTDIR)/usr/sbin
+ BIN   = $(DESTDIR)/usr/bin
+ PMETC = $(DESTDIR)/etc/pm/power.d
+-TLIB  = $(DESTDIR)/usr/lib/tlp-pm
+-PLIB  = $(DESTDIR)/usr/lib/pm-utils
++TLIB  = $(DESTDIR)/usr/$(LIBEXECDIR)/tlp-pm
++PLIB  = $(DESTDIR)/usr/$(LIBDIR)/pm-utils
+ ULIB  = $(DESTDIR)/lib/udev
+ NMDSP = $(DESTDIR)/etc/NetworkManager/dispatcher.d
+ 
+@@ -13,10 +13,22 @@ NMDSP = $(DESTDIR)/etc/NetworkManager/dispatcher.d
+ # you have to change constant definitions in scripts too!
+ CONFFILE = $(DESTDIR)/etc/sysconfig/tlp
+ 
+-all: 
++all: create-files
+ 	@/bin/true 
+ 
+-clean:
++clean-files:
++	rm -f 48tlp-rdw-lock
++	rm -f 49bay
++	rm -f 49wwan
++	rm -f tlp
++	rm -f tlp-nop
++	rm -f tlp-rdw-nm
++	rm -f tlp-rdw-udev
++	rm -f tlp-rf
++	rm -f tlp-stat
++	rm -f tlp.upstart
++
++clean: clean-files
+ 	@/bin/true 
+ 	
+ install-tlp: 
+@@ -49,7 +61,14 @@ install-rdw:
+ 	install -D -m 755 tlp-rdw-nm $(NMDSP)/99tlp-rdw-nm
+ 	install -D -m 755 48tlp-rdw-lock $(PLIB)/sleep.d/48tlp-rdw-lock
+ 
+-install: install-tlp install-rdw
++create-files:
++	for i in \
++		48tlp-rdw-lock 49bay 49wwan tlp tlp-nop tlp-rdw-nm \
++		tlp-rdw-udev tlp-rf tlp-stat tlp.upstart; do \
++		sed 's/@LIBDIR@/$(LIBDIR)/g' <$$i.in >$$i; \
++	done
++
++install: create-files install-tlp install-rdw
+ 
+ uninstall-tlp: 
+ 	# Package tlp
+diff --git a/tlp b/tlp
+deleted file mode 100755
+index 0bb1a6f..0000000
+--- a/tlp
++++ /dev/null
+@@ -1,176 +0,0 @@
+-#!/bin/sh
+-# tlp - adjust power settings 
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-# --- Constants
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-
+-# --- Source libraries
+-if [ ! -f $LIB ]; then
+-    echo "Error: missing function library \'$LIB\'."
+-    exit 1
+-fi
+-. $LIB
+-
+-# --- MAIN
+-read_defaults
+-check_tlp_enabled || exit 1
+-check_laptop_mode_tools || exit 2
+-
+-# Get cmd line arg
+-mode=$(echo $1 | tr "[:upper:]" "[:lower:]")
+-
+-echo_debug "run" "+++ mode=$mode"
+-echo_debug "path" "PATH=$PATH"
+-
+-case "$mode" in
+-    start) # Set start power mode depending on state
+-        check_root
+-        get_power_state
+-        pwr=$?
+-        load_tp_modules
+-        set_laptopmode $pwr
+-        set_dirty_parms $pwr
+-        set_scaling_governor $pwr
+-        set_scaling_min_max_freq $pwr
+-        set_sched_powersave $pwr
+-        set_nmi_watchdog
+-        set_phc_controls $pwr
+-        set_disk_apm_level $pwr
+-        set_disk_spindown_timeout $pwr
+-        set_disk_io_sched
+-        set_sata_link_power $pwr
+-        set_pcie_aspm $pwr
+-        set_i915_power_mgmt $pwr
+-        set_radeon_profile $pwr
+-        set_wifi_power_mode $pwr
+-        disable_wake_on_lan $pwr
+-        set_sound_power_mode $pwr
+-        set_runtime_pm $pwr
+-        enable_usb_suspend 0
+-        set_charge_thresholds
+-        [ "$pwr" = "1" ] && poweroff_drivebay 0
+-        
+-        echo_started_mode $pwr
+-        ;;
+-
+-    true|bat*) # Set battery power mode
+-        check_root
+-        load_tp_modules
+-        set_laptopmode 1
+-        set_dirty_parms 1
+-        set_scaling_governor 1
+-        set_scaling_min_max_freq 1
+-        set_sched_powersave 1
+-        set_nmi_watchdog
+-        set_phc_controls 1
+-        set_disk_apm_level 1
+-        set_disk_spindown_timeout 1
+-        set_disk_io_sched
+-        set_sata_link_power 1
+-        set_pcie_aspm 1
+-        set_i915_power_mgmt 1
+-        set_radeon_profile 1
+-        set_wifi_power_mode 1
+-        disable_wake_on_lan 1
+-        set_sound_power_mode 1
+-        set_runtime_pm 1
+-        [ "$X_TLP_USB_MODE" = "1" ] && enable_usb_suspend 0
+-        poweroff_drivebay 0
+-        
+-        echo_started_mode 1
+-        ;;
+-        
+-    false|ac) # Set ac power mode
+-        check_root
+-        load_tp_modules
+-        set_laptopmode 0
+-        set_dirty_parms 0
+-        set_scaling_governor 0
+-        set_scaling_min_max_freq 0
+-        set_sched_powersave 0
+-        set_nmi_watchdog
+-        set_phc_controls 0
+-        set_disk_apm_level 0
+-        set_disk_spindown_timeout 0
+-        set_disk_io_sched
+-        set_sata_link_power 0
+-        set_pcie_aspm 0
+-        set_i915_power_mgmt 0
+-        set_radeon_profile 0
+-        set_wifi_power_mode 0
+-        disable_wake_on_lan 0
+-        set_sound_power_mode 0
+-        set_runtime_pm 0
+-        [ "$X_TLP_USB_MODE" = "1" ] && enable_usb_suspend 0
+-         
+-        echo_started_mode 0
+-        ;;
+-        
+-    wifi) # Set wifi power mode depending on state
+-        check_root
+-        get_power_state
+-        pwr=$?
+-        set_wifi_power_mode $pwr $2
+-        ;;
+-
+-    usb) # Enable usb autosuspend
+-        check_root
+-        enable_usb_suspend 1
+-        ;;
+-        
+-    bayoff) # Power off drive bay
+-        check_root
+-        poweroff_drivebay 1
+-        ;;
+-        
+-    xlogin) # Called on desktop login
+-        ;;
+-
+-    discharge) # Discharge battery completely (to recalibrate)
+-        check_root
+-        load_tp_modules
+-        discharge_battery $2
+-        ;;
+-        
+-    setcharge) # Set charge thresholds (temporarily)
+-        check_root
+-        load_tp_modules
+-        setcharge_battery $2 $3 $4
+-        ;;
+-
+-    fullcharge) # Charge battery up to 100% (temporarily)
+-        check_root
+-        load_tp_modules
+-        setcharge_battery 96 100 $2
+-        ;;
+-        
+-    recalibrate) # Recalibrate battery, i.e. discharge and charge to 100%
+-        check_root
+-        load_tp_modules
+-        setcharge_battery 96 100 $2
+-        discharge_battery $2
+-        ;;        
+-        
+-    stat) # Show status
+-        tlp-stat
+-        ;;
+-
+-    diskid) # Show disk-by-id
+-        { for dev in $(ls /dev/disk/by-id/ | egrep '^ata' | egrep -v '\-part[1-9]+'); do
+-            get_disk_dev $dev
+-            echo "$disk_dev: $disk_id"
+-        done } | sort
+-        ;;
+-        
+-    *) 
+-        echo "Error: unknown command \"$mode\"."  1>&2
+-        echo "Usage: tlp start|true|bat|false|ac|wifi|usb|bayoff|discharge|setcharge|fullcharge|recalibrate|stat|diskid" 1>&2
+-        ;;
+-esac
+-
+-exit 0
+-
+-
+diff --git a/tlp-nop b/tlp-nop
+deleted file mode 100755
+index 409c401..0000000
+--- a/tlp-nop
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#!/bin/sh
+-# tlp - override corresponding script in /usr/lib/pm-utils/power.d/
+-echo "notice: /usr/lib/pm-utils/power.d/${0##/*/} disabled by tlp."
+-exit 0
+diff --git a/tlp-nop.in b/tlp-nop.in
+new file mode 100644
+index 0000000..8a9fa75
+--- /dev/null
++++ b/tlp-nop.in
+@@ -0,0 +1,4 @@
++#!/bin/sh
++# tlp - override corresponding script in /usr/@LIBDIR@/pm-utils/power.d/
++echo "notice: /usr/@LIBDIR@/pm-utils/power.d/${0##/*/} disabled by tlp."
++exit 0
+diff --git a/tlp-rdw-nm b/tlp-rdw-nm
+deleted file mode 100755
+index d795873..0000000
+--- a/tlp-rdw-nm
++++ /dev/null
+@@ -1,142 +0,0 @@
+-#!/bin/sh
+-# tlp-rdw - network manager dispatcher hook:
+-#           enable/disable radios on ifup/ifdown
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-# --- Constants
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-
+-# --- Source libraries
+-[ -f $LIB ] || exit 0
+-[ -f $RFLIB ] || exit 0
+-. $LIB
+-. $RFLIB
+-
+-# --- MAIN
+-read_defaults
+-check_tlp_enabled || exit 0
+-
+-# Get args
+-iface="$1"
+-action="$2"
+-itype="unknown"
+-
+-# Quit for invalid interfaces
+-[ -n "$iface" ] && [ "$iface" != "none" ] || exit 0
+-
+-echo_debug "nm" "rdw_nm($iface).$action"
+-
+-# Quit if suspend/resume in progress
+-check_run_flag $LOCK_RDW && exit 0
+-
+-# Quit if timed lock in progress
+-check_timed_lock tlp-rdw-nm && exit 0
+-
+-# Determine interface type
+-nmcli=$(which $NMCLI 2> /dev/null)
+-
+-if [ -n "$nmcli" ] && [ -x "$nmcli" ]; then
+-    # nmcli is available
+-    case $iface in
+-        ppp*) # iface != device -> maybe 3g usb stick?
+-
+-            # get connection state for devices != hso|usb|wwan
+-            nmstate=$($NMCLI dev | grep 'gsm' | egrep -v 'hso|usb|wwan' | awk '{ print $3; }')
+-            
+-            # when action matches state, then it is probably type 3g/gsm
+-            case $action in
+-                up) [ "$nmstate" = "connected" ] && itype="gsm" ;;
+-                down) [ "$nmstate" = "disconnected" ] && itype="gsm" ;;
+-            esac
+-            ;;
+-
+-        *) # iface = dev -> all other devices, including 3g with specific driver 
+-            itype="$($NMCLI dev | awk '$1 ~ /'$iface'/ { print $2; }')"
+-            ;;
+-    esac
+-
+-    echo_debug "nm" "rdw_nm($iface).$action: type=$itype [nmcli]"
+-else
+-    # nmcli is not available, fallback to nm-tool
+-    case $iface in
+-        ppp*) # iface != device -> maybe 3g usb stick?
+-
+-            # get connection state for devices != hso|usb|wwan
+-            nmstate=$($NMTOOL | egrep -v 'Device:.*(hso|usb|wwan)' | grep -A3 'Device:' \
+-                              | grep -A2 'Mobile Broadband (GSM)'  | grep 'State:' \
+-                              | awk '{ print $2; }')
+-                              
+-            # when action matches state, then it is probably type 3g/gsm
+-            case $action in
+-                up) [ "$nmstate" = "connected" ] && itype="gsm" ;;
+-                down) [ "$nmstate" = "disconnected" ] && itype="gsm" ;;
+-            esac
+-            ;;
+-
+-        *) # iface = dev -> all other devices, including 3g with specific driver 
+-            nmtype=$($NMTOOL | grep -A1 $iface | grep 'Type:' | cut -c22-)
+-            case $nmtype in
+-                "Wired") itype="802-3-ethernet" ;;
+-                "802.11 WiFi") itype="802-11-wireless" ;;
+-                "Mobile Broadband (GSM)") itype="gsm" ;;
+-            esac 
+-            ;;
+-    esac
+-    
+-    echo_debug "nm" "rdw_nm($iface).$action: type=$itype [nm-tool]"
+-fi    
+-
+-case $action in
+-    up) # interface up, disable configured interfaces
+-
+-        set_timed_lock tlp-rdw-nm 5 # lock rdw events for 5 seconds
+-
+-        case $itype in
+-            802-3-ethernet)
+-                for dev in $DEVICES_TO_DISABLE_ON_LAN_CONNECT; do
+-                    [ -n "$dev" ] && device_off $dev
+-                done                
+-                ;;
+-            
+-            802-11-wireless)
+-                for dev in $DEVICES_TO_DISABLE_ON_WIFI_CONNECT; do 
+-                    [ -n "$dev" ] && [ "$dev" != wifi ] && device_off $dev
+-                done
+-                ;;
+-            
+-            gsm)
+-                for dev in $DEVICES_TO_DISABLE_ON_WWAN_CONNECT; do
+-                    [ -n "$dev" ] && [ "$dev" != wwan ] && device_off $dev
+-                done
+-                ;;
+-        esac
+-        ;; # up
+-
+-    down) # interface down, enable configured interfaces
+-        case $itype in
+-            802-3-ethernet)
+-                for dev in $DEVICES_TO_ENABLE_ON_LAN_DISCONNECT; do 
+-                    [ -n "$dev" ] && device_on $dev
+-                done
+-                ;;
+-            
+-            802-11-wireless)
+-                for dev in $DEVICES_TO_ENABLE_ON_WIFI_DISCONNECT; do 
+-                    [ -n "$dev" ] && [ "$dev" != wifi ] && device_on $dev
+-                done
+-                ;;
+-            
+-            gsm)
+-                for dev in $DEVICES_TO_ENABLE_ON_WWAN_DISCONNECT; do 
+-                    [ -n "$dev" ] && [ "$dev" != wwan ] && device_on $dev
+-                done
+-                ;;
+-        esac
+-        ;; # down
+-        
+-esac 
+-    
+-exit 0
+diff --git a/tlp-rdw-nm.in b/tlp-rdw-nm.in
+new file mode 100644
+index 0000000..63e2218
+--- /dev/null
++++ b/tlp-rdw-nm.in
+@@ -0,0 +1,142 @@
++#!/bin/sh
++# tlp-rdw - network manager dispatcher hook:
++#           enable/disable radios on ifup/ifdown
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++# --- Constants
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++
++# --- Source libraries
++[ -f $LIB ] || exit 0
++[ -f $RFLIB ] || exit 0
++. $LIB
++. $RFLIB
++
++# --- MAIN
++read_defaults
++check_tlp_enabled || exit 0
++
++# Get args
++iface="$1"
++action="$2"
++itype="unknown"
++
++# Quit for invalid interfaces
++[ -n "$iface" ] && [ "$iface" != "none" ] || exit 0
++
++echo_debug "nm" "rdw_nm($iface).$action"
++
++# Quit if suspend/resume in progress
++check_run_flag $LOCK_RDW && exit 0
++
++# Quit if timed lock in progress
++check_timed_lock tlp-rdw-nm && exit 0
++
++# Determine interface type
++nmcli=$(which $NMCLI 2> /dev/null)
++
++if [ -n "$nmcli" ] && [ -x "$nmcli" ]; then
++    # nmcli is available
++    case $iface in
++        ppp*) # iface != device -> maybe 3g usb stick?
++
++            # get connection state for devices != hso|usb|wwan
++            nmstate=$($NMCLI dev | grep 'gsm' | egrep -v 'hso|usb|wwan' | awk '{ print $3; }')
++            
++            # when action matches state, then it is probably type 3g/gsm
++            case $action in
++                up) [ "$nmstate" = "connected" ] && itype="gsm" ;;
++                down) [ "$nmstate" = "disconnected" ] && itype="gsm" ;;
++            esac
++            ;;
++
++        *) # iface = dev -> all other devices, including 3g with specific driver 
++            itype="$($NMCLI dev | awk '$1 ~ /'$iface'/ { print $2; }')"
++            ;;
++    esac
++
++    echo_debug "nm" "rdw_nm($iface).$action: type=$itype [nmcli]"
++else
++    # nmcli is not available, fallback to nm-tool
++    case $iface in
++        ppp*) # iface != device -> maybe 3g usb stick?
++
++            # get connection state for devices != hso|usb|wwan
++            nmstate=$($NMTOOL | egrep -v 'Device:.*(hso|usb|wwan)' | grep -A3 'Device:' \
++                              | grep -A2 'Mobile Broadband (GSM)'  | grep 'State:' \
++                              | awk '{ print $2; }')
++                              
++            # when action matches state, then it is probably type 3g/gsm
++            case $action in
++                up) [ "$nmstate" = "connected" ] && itype="gsm" ;;
++                down) [ "$nmstate" = "disconnected" ] && itype="gsm" ;;
++            esac
++            ;;
++
++        *) # iface = dev -> all other devices, including 3g with specific driver 
++            nmtype=$($NMTOOL | grep -A1 $iface | grep 'Type:' | cut -c22-)
++            case $nmtype in
++                "Wired") itype="802-3-ethernet" ;;
++                "802.11 WiFi") itype="802-11-wireless" ;;
++                "Mobile Broadband (GSM)") itype="gsm" ;;
++            esac 
++            ;;
++    esac
++    
++    echo_debug "nm" "rdw_nm($iface).$action: type=$itype [nm-tool]"
++fi    
++
++case $action in
++    up) # interface up, disable configured interfaces
++
++        set_timed_lock tlp-rdw-nm 5 # lock rdw events for 5 seconds
++
++        case $itype in
++            802-3-ethernet)
++                for dev in $DEVICES_TO_DISABLE_ON_LAN_CONNECT; do
++                    [ -n "$dev" ] && device_off $dev
++                done                
++                ;;
++            
++            802-11-wireless)
++                for dev in $DEVICES_TO_DISABLE_ON_WIFI_CONNECT; do 
++                    [ -n "$dev" ] && [ "$dev" != wifi ] && device_off $dev
++                done
++                ;;
++            
++            gsm)
++                for dev in $DEVICES_TO_DISABLE_ON_WWAN_CONNECT; do
++                    [ -n "$dev" ] && [ "$dev" != wwan ] && device_off $dev
++                done
++                ;;
++        esac
++        ;; # up
++
++    down) # interface down, enable configured interfaces
++        case $itype in
++            802-3-ethernet)
++                for dev in $DEVICES_TO_ENABLE_ON_LAN_DISCONNECT; do 
++                    [ -n "$dev" ] && device_on $dev
++                done
++                ;;
++            
++            802-11-wireless)
++                for dev in $DEVICES_TO_ENABLE_ON_WIFI_DISCONNECT; do 
++                    [ -n "$dev" ] && [ "$dev" != wifi ] && device_on $dev
++                done
++                ;;
++            
++            gsm)
++                for dev in $DEVICES_TO_ENABLE_ON_WWAN_DISCONNECT; do 
++                    [ -n "$dev" ] && [ "$dev" != wwan ] && device_on $dev
++                done
++                ;;
++        esac
++        ;; # down
++        
++esac 
++    
++exit 0
+diff --git a/tlp-rdw-udev b/tlp-rdw-udev
+deleted file mode 100755
+index e95cee1..0000000
+--- a/tlp-rdw-udev
++++ /dev/null
+@@ -1,57 +0,0 @@
+-#!/bin/sh
+-# tlp-rdw - handle dock/undock events
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-# --- Constants
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-
+-# --- Source libraries
+-[ -f $LIB ] || exit 0
+-[ -f $RFLIB ] || exit 0
+-. $LIB
+-. $RFLIB
+-
+-# --- MAIN
+-read_defaults
+-check_tlp_enabled || exit 0
+-
+-# Get state
+-ddir=/sys/devices/platform/$1
+-type=$(cat $ddir/type)
+-docked=$(cat $ddir/docked)
+-get_power_state; bat=$?
+-
+-echo_debug "udev" "rdw_udev($*).$EVENT dev=$ddir type=$type docked=$docked bat=$bat"
+-
+-case $EVENT in
+-    dock) # laptop was docked
+-    
+-        # enable configured radios
+-        for dev in $DEVICES_TO_ENABLE_ON_DOCK; do 
+-            [ -n "$dev" ] && device_on $dev
+-        done
+-        
+-        # disable configured radios
+-        for dev in $DEVICES_TO_DISABLE_ON_DOCK; do 
+-            [ -n "$dev" ] && device_off $dev
+-        done
+-        ;;
+-        
+-    undock) # laptop was undocked
+-
+-        # enable configured radios
+-        for dev in $DEVICES_TO_ENABLE_ON_UNDOCK; do 
+-            [ -n "$dev" ] && device_on $dev
+-        done
+-        
+-        # disable configured radios
+-        for dev in $DEVICES_TO_DISABLE_ON_UNDOCK; do 
+-            [ -n "$dev" ] && device_off $dev
+-        done
+-        ;;
+-esac
+-
+-exit 0
+diff --git a/tlp-rdw-udev.in b/tlp-rdw-udev.in
+new file mode 100644
+index 0000000..ba771c1
+--- /dev/null
++++ b/tlp-rdw-udev.in
+@@ -0,0 +1,57 @@
++#!/bin/sh
++# tlp-rdw - handle dock/undock events
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++# --- Constants
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++
++# --- Source libraries
++[ -f $LIB ] || exit 0
++[ -f $RFLIB ] || exit 0
++. $LIB
++. $RFLIB
++
++# --- MAIN
++read_defaults
++check_tlp_enabled || exit 0
++
++# Get state
++ddir=/sys/devices/platform/$1
++type=$(cat $ddir/type)
++docked=$(cat $ddir/docked)
++get_power_state; bat=$?
++
++echo_debug "udev" "rdw_udev($*).$EVENT dev=$ddir type=$type docked=$docked bat=$bat"
++
++case $EVENT in
++    dock) # laptop was docked
++    
++        # enable configured radios
++        for dev in $DEVICES_TO_ENABLE_ON_DOCK; do 
++            [ -n "$dev" ] && device_on $dev
++        done
++        
++        # disable configured radios
++        for dev in $DEVICES_TO_DISABLE_ON_DOCK; do 
++            [ -n "$dev" ] && device_off $dev
++        done
++        ;;
++        
++    undock) # laptop was undocked
++
++        # enable configured radios
++        for dev in $DEVICES_TO_ENABLE_ON_UNDOCK; do 
++            [ -n "$dev" ] && device_on $dev
++        done
++        
++        # disable configured radios
++        for dev in $DEVICES_TO_DISABLE_ON_UNDOCK; do 
++            [ -n "$dev" ] && device_off $dev
++        done
++        ;;
++esac
++
++exit 0
+diff --git a/tlp-rf b/tlp-rf
+deleted file mode 100755
+index 613a90c..0000000
+--- a/tlp-rf
++++ /dev/null
+@@ -1,52 +0,0 @@
+-#!/bin/sh
+-# tlp - switch bluetooth/wifi/wwan on/off
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-# --- Constants
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-
+-# --- Source libraries
+-[ -f $LIB ] || exit 0
+-[ -f $RFLIB ] || exit 0
+-. $LIB
+-. $RFLIB
+-
+-# --- MAIN
+-read_defaults
+-self=${0##*/}
+-
+-case $self in
+-    bluetooth|wifi|wwan)
+-        case $1 in
+-            on)
+-                device_on $self
+-                echo_device_state $self $devs
+-                ;;
+-
+-            off)
+-                device_off $self
+-                echo_device_state $self $devs
+-                ;;
+-                
+-            toggle)
+-                device_toggle $self
+-                echo_device_state $self $devs
+-                ;;
+-                
+-            *)
+-                device_state $self
+-                echo_device_state $self $devs
+-                ;;
+-        esac
+-        ;;
+-
+-    *)
+-        echo "Error: unknown device type \"$self\"."
+-        exit 1
+-        ;;
+-esac
+-
+-exit 0
+diff --git a/tlp-rf.in b/tlp-rf.in
+new file mode 100644
+index 0000000..00592e7
+--- /dev/null
++++ b/tlp-rf.in
+@@ -0,0 +1,52 @@
++#!/bin/sh
++# tlp - switch bluetooth/wifi/wwan on/off
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++# --- Constants
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++
++# --- Source libraries
++[ -f $LIB ] || exit 0
++[ -f $RFLIB ] || exit 0
++. $LIB
++. $RFLIB
++
++# --- MAIN
++read_defaults
++self=${0##*/}
++
++case $self in
++    bluetooth|wifi|wwan)
++        case $1 in
++            on)
++                device_on $self
++                echo_device_state $self $devs
++                ;;
++
++            off)
++                device_off $self
++                echo_device_state $self $devs
++                ;;
++                
++            toggle)
++                device_toggle $self
++                echo_device_state $self $devs
++                ;;
++                
++            *)
++                device_state $self
++                echo_device_state $self $devs
++                ;;
++        esac
++        ;;
++
++    *)
++        echo "Error: unknown device type \"$self\"."
++        exit 1
++        ;;
++esac
++
++exit 0
+diff --git a/tlp-stat b/tlp-stat
+deleted file mode 100755
+index 2cdbf01..0000000
+--- a/tlp-stat
++++ /dev/null
+@@ -1,510 +0,0 @@
+-#!/bin/sh
+-# tlp - display power save and usb autosuspend status
+-#
+-# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
+-# This software is licensed under the GPL v2.
+-
+-# --- Constants
+-readonly LIB=/usr/lib/tlp-pm/tlp-functions
+-readonly RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-readonly TLPUSB=/usr/bin/tlp-usblist
+-
+-readonly SMARTCTL=$(which smartctl 2> /dev/null)
+-readonly LSBREL=$(which lsb_release 2> /dev/null)
+-readonly DMIDEC=$(which dmidecode 2> /dev/null)
+-
+-readonly ASPM=/sys/module/pcie_aspm/parameters/policy
+-readonly NMIWD=/proc/sys/kernel/nmi_watchdog
+-readonly TPACPI=/sys/devices/platform/thinkpad_acpi
+-
+-readonly THERMAL=/proc/acpi/ibm/thermal
+-readonly FAN=/proc/acpi/ibm/fan
+-
+-# --- Variables
+-nodebug=1
+-
+-needs_root_priv=1
+-show_all=1
+-show_bat=0
+-show_conf=0
+-
+-# --- Functions
+-echoparm () { # $1: file, $2: n/a message, $3: unit, $4: cutoff
+-    local val
+-    
+-    if [ -f $1 ]; then
+-        val=$(cat $1 2> /dev/null)
+-        if [ $? = 0 ]; then
+-            if [ -n "$4" ]; then
+-                val=${val%$4}
+-            fi
+-            if [ -n "$3" ]; then    
+-                echo "$1 = $val [$3]"
+-            else
+-                echo "$1 = $val"
+-            fi
+-        else
+-            if [ -n "$2" ] && [ "$2" != "-" ]; then
+-                echo "$1 = ($2)"
+-            else
+-                echo "$1 = (not available)"
+-            fi
+-        fi
+-    else
+-        if [ -n "$2" ] && [ "$2" != "-" ]; then
+-            echo "$1 = ($2)"
+-        else
+-            echo "$1 = (not available)"
+-        fi
+-    fi
+-}
+-
+-read_args () {
+-    for a in $*; do
+-        case $a in
+-            "-b"|"--battery")
+-                show_all=0
+-                show_bat=1
+-                needs_root_priv=0
+-                ;;
+-                
+-            "-c"|"--config")
+-                show_all=0
+-                show_conf=1
+-                needs_root_priv=0
+-                ;;
+-
+-            *)
+-                echo "Usage: tlp-stat [-b|--battery|-c|--config]"
+-                exit 1
+-                ;;
+-        esac
+-    done
+-}
+-    
+-# --- Read libraries
+-if [ -f $LIB ]; then
+-    . $LIB
+-else
+-    echo "Fatal error: library $LIB not installed."
+-    exit 1
+-fi
+-
+-if [ -f $RFLIB ]; then
+-    . $RFLIB
+-else
+-    echo "Fatal error: library $RFLIB not installed."
+-    exit 1
+-fi
+-
+-# --- MAIN
+-if [ "$needs_root_priv" = "1" ]; then
+-    check_root
+-    load_tp_modules
+-fi
+-
+-read_args $*
+-
+-echo "--- TLP $TLPVER --------------------------------------------"
+-echo
+-
+-if [ "$show_conf" = "1" ] || [ "$show_all" = "1" ]; then
+-    if [ -f $CONFFILE ]; then
+-        . $CONFFILE
+-        echo "+++ Configured Settings: $CONFFILE"
+-        egrep -v '^#|^\s*$' $CONFFILE
+-        echo
+-    else
+-        echo "Warning: config file $CONFFILE not present."
+-        echo
+-    fi
+-fi
+-
+-if [ "$show_all" = "1" ]; then
+-    echo "+++ System Info"
+-    if [ -n "$DMIDEC" ]; then
+-        pmanuf="$( $DMIDEC -s system-manufacturer 2> /dev/null | \
+-                    egrep -iv 'not available|to be filled|DMI table is broken' )"
+-        pversion="$( $DMIDEC -s system-version 2> /dev/null | \
+-                    egrep -iv 'not available|to be filled|DMI table is broken' )"
+-        product="$( $DMIDEC -s system-product-name 2> /dev/null | \
+-                    egrep -iv 'not available|to be filled|DMI table is broken' )"
+-        bios="$( $DMIDEC -s bios-version 2> /dev/null | \
+-                    egrep -iv 'not available|to be filled|DMI table is broken' )"
+-        
+-        echo "System = $pmanuf $pversion $product"
+-        echo "BIOS = $bios"
+-    fi
+-    
+-    [ -n "$LSBREL" ] && echo "Release = $($LSBREL -d -s)"
+-    echo "Kernel = $(uname -r -m)"
+-    echoparm /proc/cmdline
+-    echo
+-    
+-    echo "+++ System Status"
+-    if check_laptop_mode_tools; then
+-        if [ "$TLP_ENABLE" = "1" ]; then
+-            echo "TLP power save = enabled"
+-        else
+-            echo "TLP power save = not enabled"
+-        fi
+-    fi
+-    
+-    if get_power_state; then
+-        echo "power source = ac"
+-    else
+-        echo "power source = battery"
+-    fi
+-    echo
+-    
+-    # cpu
+-    echo "+++ Processor"
+-    for cpuf in /sys/devices/system/cpu/cpu*/cpufreq; do
+-        echoparm $cpuf/scaling_governor
+-        printf "%s = %8d [kHz]\n" $cpuf/scaling_min_freq $(cat $cpuf/scaling_min_freq)
+-        printf "%s = %8d [kHz]\n" $cpuf/scaling_max_freq $(cat $cpuf/scaling_max_freq)
+-        printf "%s = " $cpuf/scaling_available_frequencies
+-        for freq in $(cat $cpuf/scaling_available_frequencies); do
+-            printf "%8d" $freq
+-        done
+-        printf " [kHz]\n\n"
+-    done
+-    
+-    for pool in mc smp smt; do
+-        sdev="/sys/devices/system/cpu/sched_${pool}_power_savings"
+-        [ -w "$sdev" ] || continue
+-        echoparm $sdev
+-    done
+-    
+-    # nmi watchdog
+-    echoparm $NMIWD
+-    echo
+-    
+-    echo "+++ Undervolting"
+-    phc_avail=0
+-    for cpuf in /sys/devices/system/cpu/cpu*/cpufreq; do
+-        if [ -f $cpuf/phc_controls ]; then
+-            phc_avail=1
+-            echoparm "$cpuf/phc_controls        "
+-            echoparm "$cpuf/phc_default_controls"
+-            echo
+-        fi
+-    done
+-    if [ $phc_avail = 0 ]; then
+-        echo "PHC kernel not available."
+-        echo 
+-    fi
+-    
+-    # temperatures
+-    if [ -d $TPACPI ]; then
+-        echo "+++ ThinkPad Temperatures"
+-        echoparm $THERMAL
+-        if [ -f $FAN ]; then
+-            cat $FAN | \
+-                awk '$1 ~ /speed:/ { printf "'$FAN'     = speed:        %5d\n", $2 }'
+-        else
+-            echo "$FAN     = (not available)"
+-        fi
+-        echo
+-    fi
+-    
+-    
+-    # laptop-mode, dirty buffers params
+-    echo "+++ File System"
+-    echoparm /proc/sys/vm/laptop_mode
+-    echoparm /proc/sys/vm/dirty_writeback_centisecs
+-    echoparm /proc/sys/vm/dirty_expire_centisecs
+-    echoparm /proc/sys/vm/dirty_ratio
+-    echoparm /proc/sys/vm/dirty_background_ratio
+-    echoparm /proc/sys/fs/xfs/age_buffer_centisecs
+-    echoparm /proc/sys/fs/xfs/xfssyncd_centisecs   
+-    echoparm /proc/sys/fs/xfs/xfsbufd_centisecs
+-    echo 
+-    
+-    # disk apm level
+-    echo "+++ Storage Devices"
+-    DISK_DEVICES=${DISK_DEVICES:=sda}
+-    for dev in $DISK_DEVICES; do
+-        get_disk_dev $dev
+-    
+-        if [ -b /dev/$disk_dev ]; then
+-            check_disk_hdparm_cap $disk_dev
+-            if [ $? = 0 ]; then
+-                echo "/dev/$disk_dev:"
+-                    
+-                if [ -n "$disk_id" ]; then
+-                    echo "          Disk ID   = $disk_id"
+-                fi
+-                
+-                echo -n "          Model     = "
+-                echo_disk_model $disk_dev
+-                
+-                echo -n "          Firmware  = "
+-                echo_disk_firmware $disk_dev
+-                
+-                get_disk_apm_level $disk_dev
+-                apm=$?
+-                echo -n "          APM Level = "
+-                case $apm in
+-                    0|255) echo "none/disabled" ;;
+-                    *)     echo $apm ;;
+-                esac
+-                
+-                echo "          scheduler = $(cat /sys/block/$disk_dev/queue/scheduler | sed -r 's/.*\[(.*)\].*/\1/')"
+-            
+-                if [ -n "$SMARTCTL" ]; then
+-                    echo 
+-                    echo "        SMART info:"
+-                    $SMARTCTL -A /dev/$disk_dev | grep -v '<==' | \
+-                      awk -F ' ' '$2 ~ /Start_Stop_Count|Load_Cycle_Count|Reallocated_Sector_Ct|Used_Rsvd_Blk_Cnt_Chip/ \
+-                                        { printf "          %3d %-25s = %8d \n", $1, $2, $10 } ; \
+-                                  $2 ~ /Power_On_Hours/ \
+-                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $10, "[h]" } ; \
+-                                  $2 ~ /Temperature_Celsius/ \
+-                                        { printf "          %3d %-25s = %8d %s %s %s %s\n", $1, $2, $10, $11, $12, $13, "[°C]" } ; \
+-                                  $2 ~ /Airflow_Temperature_Cel/ \
+-                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $10, "[°C]" } ; \
+-                                  $2 ~ /Host_Writes/ \
+-                                        { printf "          %3d %-25s = %8.3f %s\n", $1, $2, $10 / 32768.0, "[TB]" } ; \
+-                                  $2 ~ /Available_Reservd_Space|Media_Wearout_Indicator|Wear_Leveling_Count/ \
+-                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $4, "[%]" }'
+-                fi
+-                echo
+-            fi
+-        fi
+-    done
+-    echo
+-    
+-    # sata alpm
+-    echo "+++ SATA Aggressive Link Power Management"
+-    cnt=0
+-    for i in /sys/class/scsi_host/host* ; do
+-        if [ -f $i/link_power_management_policy ]; then
+-            echoparm $i/link_power_management_policy
+-            cnt=$((cnt+1))
+-        fi
+-    done
+-    if [ $cnt = 0 ]; then
+-        echo "No AHCI-enabled host controller detected."
+-    fi  
+-    echo 
+-    
+-    # pcie aspm
+-    echo "+++ PCIe Active State Power Management"
+-    if [ -f $ASPM ]; then
+-        pol=$(cat $ASPM | sed -r 's/.*\[(.*)\].*/\1/')
+-        echo "$pol" > $ASPM 2> /dev/null
+-        if [ $? = 0 ]; then
+-            echo "$ASPM = $pol"
+-        else
+-            echo "$ASPM = $pol (disabled by kernel)"
+-        fi 
+-    else
+-        echo "$ASPM = (not available)"
+-    fi
+-    echo
+-    
+-    # i915 power mgmt
+-    if [ -d $I915D ]; then 
+-        echo "+++ Intel Graphics"
+-        echoparm $I915D/powersave
+-        echoparm $I915D/i915_enable_rc6
+-        echoparm $I915D/i915_enable_fbc
+-        echoparm $I915D/lvds_downclock
+-        echoparm $I915D/semaphores
+-        echo
+-    fi
+-    
+-    # radeon power profile
+-    for card in /sys/class/drm/card[0-9]/device ; do
+-        if [ -f $card/power_method ] && [ -f $card/power_profile ]; then
+-            echo "+++ Radeon Graphics"
+-            echoparm $card/power_method
+-            echoparm $card/power_profile
+-            echo
+-            break
+-        fi
+-    done
+-    
+-    echo "+++ Wireless"
+-    # rfkill state
+-    for i in bluetooth wifi wwan; do
+-        get_devc $i
+-        get_devs $i
+-        echo_device_state $i $devs
+-    done
+-    echo
+-    
+-    # wifi power mode
+-    get_wifi_ifaces
+-    for iface in $WIFACES; do
+-        if [ -n "$iface" ]; then
+-            wifipm=$($IWC $iface 2> /dev/null | grep "Power Management" | \
+-              sed -r 's/.*Power Management:(on|off).*/\1/')
+-            get_wifi_driver $iface
+-            echo -n "$iface($WIFIDRV): power management = "
+-            case $wifipm in
+-                on)
+-                    echo "on"
+-                    ;;
+-                    
+-                off)
+-                    if [ -z "$($IWC $iface power off 2>&1)" ]; then
+-                        echo "off"
+-                    else
+-                        echo "off (disabled by kernel)"
+-                    fi
+-                    ;;
+-                    
+-                *) 
+-                    echo "unknown"
+-                    ;;
+-            esac
+-        fi
+-    done
+-    [ -n "$WIFACES" ] && echo
+-        
+-    # sound power mode
+-    echo "+++ Audio"
+-    if [ -d /sys/module/snd_hda_intel ]; then
+-        echoparm /sys/module/snd_hda_intel/parameters/power_save
+-        echoparm /sys/module/snd_hda_intel/parameters/power_save_controller
+-    fi
+-    if [ -d /sys/module/snd_ac97_codec ]; then
+-        echoparm /sys/module/snd_ac97_codec/parameters/power_save
+-    fi
+-    echo
+-    
+-fi # show_all
+-
+-if [ "$show_bat" = "1" ] || [ "$show_all" = "1" ]; then
+-    # battery info & charge thresholds 
+-    if [ -d /sys/devices/platform/smapi ]; then
+-        # ThinkPad via tp_smapi
+-        for bat in /sys/devices/platform/smapi/BAT[01]; do
+-            if [ -d $bat ] && [ "$(cat $bat/installed)" = "1" ]; then
+-                case ${bat##/*/} in
+-                    BAT0) 
+-                        echo "+++ ThinkPad Battery (Main)"
+-                        ;;
+-                        
+-                    BAT1)
+-                        echo "+++ ThinkPad Battery (Ultrabay/Slice)"
+-                        ;;
+-                        
+-                    *)
+-                        echo "+++ ThinkPad Battery"
+-                        ;;
+-                esac
+-                
+-                echoparm $bat/manufacturer
+-                echoparm $bat/model
+-                echoparm $bat/manufacture_date
+-                echoparm $bat/first_use_date
+-                echoparm $bat/cycle_count
+-                echoparm $bat/design_capacity - mWh
+-                echoparm $bat/last_full_capacity - mWh
+-                echoparm $bat/remaining_capacity - mWh
+-                echoparm $bat/remaining_percent - "%"
+-                echoparm $bat/remaining_running_time_now - min
+-                echoparm $bat/remaining_charging_time - min
+-                echoparm $bat/force_discharge
+-                echoparm $bat/power_now - mW
+-                echo
+-                echoparm $bat/start_charge_thresh - "%"
+-                echoparm $bat/stop_charge_thresh - "%"
+-                echo
+-            fi
+-        done
+-    elif [ -d /sys/class/power_supply ]; then
+-        echo "+++ Battery"
+-        if [ -d /sys/devices/platform/thinkpad_acpi ]; then
+-            echo "ThinkPad extended battery info not available (missing tp_smapi kernel module)."
+-        fi
+-        # generic
+-        for bat in /sys/class/power_supply/*; do
+-            if [ -d $bat ] \
+-               && [ "$(cat $bat/type)" = "Battery" ] \
+-               && [ "$(cat $bat/present)" = "1" ]; then
+-                echoparm $bat/manufacturer
+-                echoparm $bat/model_name
+-                echoparm $bat/cycle_count 
+-                if [ -f $bat/energy_full ]; then 
+-                    echoparm $bat/energy_full_design - mWh 000
+-                    echoparm $bat/energy_full - mWh 000
+-                    echoparm $bat/energy_now - mWh 000
+-                    echoparm $bat/power_now - mW 000
+-                elif [ -f $bat/charge_full ]; then
+-                    echoparm $bat/charge_full_design - mAh 000
+-                    echoparm $bat/charge_full - mAh 000
+-                    echoparm $bat/charge_now - mAh 000
+-                    echoparm $bat/current_now - mA 000
+-                fi
+-                echoparm $bat/status
+-                echo
+-            fi
+-        done
+-    fi
+-    
+-fi # show_bat
+-
+-if [ "$show_all" = "1" ]; then
+-    # runtime pm
+-    echo "+++ Runtime Power Management"
+-    for type in $PCID; do
+-        for device in $type/*; do
+-            if [ -f $device/class ] && [ -f $device/power/control ]; then
+-                case $(cat $device/class) in
+-                    0x020000) # ethernet
+-                        echoparm $device/power/control - Ethernet
+-                        ;;
+-                    
+-                    0x028000) # wireless
+-                        echoparm $device/power/control - Wireless
+-                        ;;
+-                                        
+-                    0x040300) # audio
+-                        echoparm $device/power/control - Audio
+-                        ;;
+-                    
+-                    0x060000) # host bridge
+-                        echoparm $device/power/control - Host Bridge
+-                        ;;
+-                        
+-                    0x080500) # SD card reader
+-                        echoparm $device/power/control - SD Card Reader
+-                        ;;
+-                        
+-                    0x088000|0x088001) # card reader
+-                        echoparm $device/power/control - Card Reader
+-                        ;;
+-                        
+-                    0x0c0000|0x0c0010) # firewire
+-                        echoparm $device/power/control - Firewire
+-                        ;;
+-                esac 
+-            fi
+-        done
+-    done
+-    echo 
+-    
+-    # usb autosuspend
+-    echo "+++ USB"
+-    if [ "$USB_AUTOSUSPEND" = "1" ]; then
+-        echo "tlp usb autosuspend = enabled"
+-    else
+-        echo "tlp usb autosuspend = not enabled"
+-    fi
+-    echo "tlp usb blacklist = ${USB_BLACKLIST:=(not configured)}"
+-    echo
+-    
+-    if [ -x $TLPUSB ]; then
+-        $TLPUSB 
+-    else
+-        echo "Error: missing subcommand $TLPUSB."
+-    fi
+-    echo 
+-
+-fi # show_all
+-
+-exit 0
+diff --git a/tlp-stat.in b/tlp-stat.in
+new file mode 100644
+index 0000000..ea1c922
+--- /dev/null
++++ b/tlp-stat.in
+@@ -0,0 +1,510 @@
++#!/bin/sh
++# tlp - display power save and usb autosuspend status
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++# --- Constants
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++readonly RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++readonly TLPUSB=/usr/bin/tlp-usblist
++
++readonly SMARTCTL=$(which smartctl 2> /dev/null)
++readonly LSBREL=$(which lsb_release 2> /dev/null)
++readonly DMIDEC=$(which dmidecode 2> /dev/null)
++
++readonly ASPM=/sys/module/pcie_aspm/parameters/policy
++readonly NMIWD=/proc/sys/kernel/nmi_watchdog
++readonly TPACPI=/sys/devices/platform/thinkpad_acpi
++
++readonly THERMAL=/proc/acpi/ibm/thermal
++readonly FAN=/proc/acpi/ibm/fan
++
++# --- Variables
++nodebug=1
++
++needs_root_priv=1
++show_all=1
++show_bat=0
++show_conf=0
++
++# --- Functions
++echoparm () { # $1: file, $2: n/a message, $3: unit, $4: cutoff
++    local val
++    
++    if [ -f $1 ]; then
++        val=$(cat $1 2> /dev/null)
++        if [ $? = 0 ]; then
++            if [ -n "$4" ]; then
++                val=${val%$4}
++            fi
++            if [ -n "$3" ]; then    
++                echo "$1 = $val [$3]"
++            else
++                echo "$1 = $val"
++            fi
++        else
++            if [ -n "$2" ] && [ "$2" != "-" ]; then
++                echo "$1 = ($2)"
++            else
++                echo "$1 = (not available)"
++            fi
++        fi
++    else
++        if [ -n "$2" ] && [ "$2" != "-" ]; then
++            echo "$1 = ($2)"
++        else
++            echo "$1 = (not available)"
++        fi
++    fi
++}
++
++read_args () {
++    for a in $*; do
++        case $a in
++            "-b"|"--battery")
++                show_all=0
++                show_bat=1
++                needs_root_priv=0
++                ;;
++                
++            "-c"|"--config")
++                show_all=0
++                show_conf=1
++                needs_root_priv=0
++                ;;
++
++            *)
++                echo "Usage: tlp-stat [-b|--battery|-c|--config]"
++                exit 1
++                ;;
++        esac
++    done
++}
++    
++# --- Read libraries
++if [ -f $LIB ]; then
++    . $LIB
++else
++    echo "Fatal error: library $LIB not installed."
++    exit 1
++fi
++
++if [ -f $RFLIB ]; then
++    . $RFLIB
++else
++    echo "Fatal error: library $RFLIB not installed."
++    exit 1
++fi
++
++# --- MAIN
++if [ "$needs_root_priv" = "1" ]; then
++    check_root
++    load_tp_modules
++fi
++
++read_args $*
++
++echo "--- TLP $TLPVER --------------------------------------------"
++echo
++
++if [ "$show_conf" = "1" ] || [ "$show_all" = "1" ]; then
++    if [ -f $CONFFILE ]; then
++        . $CONFFILE
++        echo "+++ Configured Settings: $CONFFILE"
++        egrep -v '^#|^\s*$' $CONFFILE
++        echo
++    else
++        echo "Warning: config file $CONFFILE not present."
++        echo
++    fi
++fi
++
++if [ "$show_all" = "1" ]; then
++    echo "+++ System Info"
++    if [ -n "$DMIDEC" ]; then
++        pmanuf="$( $DMIDEC -s system-manufacturer 2> /dev/null | \
++                    egrep -iv 'not available|to be filled|DMI table is broken' )"
++        pversion="$( $DMIDEC -s system-version 2> /dev/null | \
++                    egrep -iv 'not available|to be filled|DMI table is broken' )"
++        product="$( $DMIDEC -s system-product-name 2> /dev/null | \
++                    egrep -iv 'not available|to be filled|DMI table is broken' )"
++        bios="$( $DMIDEC -s bios-version 2> /dev/null | \
++                    egrep -iv 'not available|to be filled|DMI table is broken' )"
++        
++        echo "System = $pmanuf $pversion $product"
++        echo "BIOS = $bios"
++    fi
++    
++    [ -n "$LSBREL" ] && echo "Release = $($LSBREL -d -s)"
++    echo "Kernel = $(uname -r -m)"
++    echoparm /proc/cmdline
++    echo
++    
++    echo "+++ System Status"
++    if check_laptop_mode_tools; then
++        if [ "$TLP_ENABLE" = "1" ]; then
++            echo "TLP power save = enabled"
++        else
++            echo "TLP power save = not enabled"
++        fi
++    fi
++    
++    if get_power_state; then
++        echo "power source = ac"
++    else
++        echo "power source = battery"
++    fi
++    echo
++    
++    # cpu
++    echo "+++ Processor"
++    for cpuf in /sys/devices/system/cpu/cpu*/cpufreq; do
++        echoparm $cpuf/scaling_governor
++        printf "%s = %8d [kHz]\n" $cpuf/scaling_min_freq $(cat $cpuf/scaling_min_freq)
++        printf "%s = %8d [kHz]\n" $cpuf/scaling_max_freq $(cat $cpuf/scaling_max_freq)
++        printf "%s = " $cpuf/scaling_available_frequencies
++        for freq in $(cat $cpuf/scaling_available_frequencies); do
++            printf "%8d" $freq
++        done
++        printf " [kHz]\n\n"
++    done
++    
++    for pool in mc smp smt; do
++        sdev="/sys/devices/system/cpu/sched_${pool}_power_savings"
++        [ -w "$sdev" ] || continue
++        echoparm $sdev
++    done
++    
++    # nmi watchdog
++    echoparm $NMIWD
++    echo
++    
++    echo "+++ Undervolting"
++    phc_avail=0
++    for cpuf in /sys/devices/system/cpu/cpu*/cpufreq; do
++        if [ -f $cpuf/phc_controls ]; then
++            phc_avail=1
++            echoparm "$cpuf/phc_controls        "
++            echoparm "$cpuf/phc_default_controls"
++            echo
++        fi
++    done
++    if [ $phc_avail = 0 ]; then
++        echo "PHC kernel not available."
++        echo 
++    fi
++    
++    # temperatures
++    if [ -d $TPACPI ]; then
++        echo "+++ ThinkPad Temperatures"
++        echoparm $THERMAL
++        if [ -f $FAN ]; then
++            cat $FAN | \
++                awk '$1 ~ /speed:/ { printf "'$FAN'     = speed:        %5d\n", $2 }'
++        else
++            echo "$FAN     = (not available)"
++        fi
++        echo
++    fi
++    
++    
++    # laptop-mode, dirty buffers params
++    echo "+++ File System"
++    echoparm /proc/sys/vm/laptop_mode
++    echoparm /proc/sys/vm/dirty_writeback_centisecs
++    echoparm /proc/sys/vm/dirty_expire_centisecs
++    echoparm /proc/sys/vm/dirty_ratio
++    echoparm /proc/sys/vm/dirty_background_ratio
++    echoparm /proc/sys/fs/xfs/age_buffer_centisecs
++    echoparm /proc/sys/fs/xfs/xfssyncd_centisecs   
++    echoparm /proc/sys/fs/xfs/xfsbufd_centisecs
++    echo 
++    
++    # disk apm level
++    echo "+++ Storage Devices"
++    DISK_DEVICES=${DISK_DEVICES:=sda}
++    for dev in $DISK_DEVICES; do
++        get_disk_dev $dev
++    
++        if [ -b /dev/$disk_dev ]; then
++            check_disk_hdparm_cap $disk_dev
++            if [ $? = 0 ]; then
++                echo "/dev/$disk_dev:"
++                    
++                if [ -n "$disk_id" ]; then
++                    echo "          Disk ID   = $disk_id"
++                fi
++                
++                echo -n "          Model     = "
++                echo_disk_model $disk_dev
++                
++                echo -n "          Firmware  = "
++                echo_disk_firmware $disk_dev
++                
++                get_disk_apm_level $disk_dev
++                apm=$?
++                echo -n "          APM Level = "
++                case $apm in
++                    0|255) echo "none/disabled" ;;
++                    *)     echo $apm ;;
++                esac
++                
++                echo "          scheduler = $(cat /sys/block/$disk_dev/queue/scheduler | sed -r 's/.*\[(.*)\].*/\1/')"
++            
++                if [ -n "$SMARTCTL" ]; then
++                    echo 
++                    echo "        SMART info:"
++                    $SMARTCTL -A /dev/$disk_dev | grep -v '<==' | \
++                      awk -F ' ' '$2 ~ /Start_Stop_Count|Load_Cycle_Count|Reallocated_Sector_Ct|Used_Rsvd_Blk_Cnt_Chip/ \
++                                        { printf "          %3d %-25s = %8d \n", $1, $2, $10 } ; \
++                                  $2 ~ /Power_On_Hours/ \
++                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $10, "[h]" } ; \
++                                  $2 ~ /Temperature_Celsius/ \
++                                        { printf "          %3d %-25s = %8d %s %s %s %s\n", $1, $2, $10, $11, $12, $13, "[°C]" } ; \
++                                  $2 ~ /Airflow_Temperature_Cel/ \
++                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $10, "[°C]" } ; \
++                                  $2 ~ /Host_Writes/ \
++                                        { printf "          %3d %-25s = %8.3f %s\n", $1, $2, $10 / 32768.0, "[TB]" } ; \
++                                  $2 ~ /Available_Reservd_Space|Media_Wearout_Indicator|Wear_Leveling_Count/ \
++                                        { printf "          %3d %-25s = %8d %s\n", $1, $2, $4, "[%]" }'
++                fi
++                echo
++            fi
++        fi
++    done
++    echo
++    
++    # sata alpm
++    echo "+++ SATA Aggressive Link Power Management"
++    cnt=0
++    for i in /sys/class/scsi_host/host* ; do
++        if [ -f $i/link_power_management_policy ]; then
++            echoparm $i/link_power_management_policy
++            cnt=$((cnt+1))
++        fi
++    done
++    if [ $cnt = 0 ]; then
++        echo "No AHCI-enabled host controller detected."
++    fi  
++    echo 
++    
++    # pcie aspm
++    echo "+++ PCIe Active State Power Management"
++    if [ -f $ASPM ]; then
++        pol=$(cat $ASPM | sed -r 's/.*\[(.*)\].*/\1/')
++        echo "$pol" > $ASPM 2> /dev/null
++        if [ $? = 0 ]; then
++            echo "$ASPM = $pol"
++        else
++            echo "$ASPM = $pol (disabled by kernel)"
++        fi 
++    else
++        echo "$ASPM = (not available)"
++    fi
++    echo
++    
++    # i915 power mgmt
++    if [ -d $I915D ]; then 
++        echo "+++ Intel Graphics"
++        echoparm $I915D/powersave
++        echoparm $I915D/i915_enable_rc6
++        echoparm $I915D/i915_enable_fbc
++        echoparm $I915D/lvds_downclock
++        echoparm $I915D/semaphores
++        echo
++    fi
++    
++    # radeon power profile
++    for card in /sys/class/drm/card[0-9]/device ; do
++        if [ -f $card/power_method ] && [ -f $card/power_profile ]; then
++            echo "+++ Radeon Graphics"
++            echoparm $card/power_method
++            echoparm $card/power_profile
++            echo
++            break
++        fi
++    done
++    
++    echo "+++ Wireless"
++    # rfkill state
++    for i in bluetooth wifi wwan; do
++        get_devc $i
++        get_devs $i
++        echo_device_state $i $devs
++    done
++    echo
++    
++    # wifi power mode
++    get_wifi_ifaces
++    for iface in $WIFACES; do
++        if [ -n "$iface" ]; then
++            wifipm=$($IWC $iface 2> /dev/null | grep "Power Management" | \
++              sed -r 's/.*Power Management:(on|off).*/\1/')
++            get_wifi_driver $iface
++            echo -n "$iface($WIFIDRV): power management = "
++            case $wifipm in
++                on)
++                    echo "on"
++                    ;;
++                    
++                off)
++                    if [ -z "$($IWC $iface power off 2>&1)" ]; then
++                        echo "off"
++                    else
++                        echo "off (disabled by kernel)"
++                    fi
++                    ;;
++                    
++                *) 
++                    echo "unknown"
++                    ;;
++            esac
++        fi
++    done
++    [ -n "$WIFACES" ] && echo
++        
++    # sound power mode
++    echo "+++ Audio"
++    if [ -d /sys/module/snd_hda_intel ]; then
++        echoparm /sys/module/snd_hda_intel/parameters/power_save
++        echoparm /sys/module/snd_hda_intel/parameters/power_save_controller
++    fi
++    if [ -d /sys/module/snd_ac97_codec ]; then
++        echoparm /sys/module/snd_ac97_codec/parameters/power_save
++    fi
++    echo
++    
++fi # show_all
++
++if [ "$show_bat" = "1" ] || [ "$show_all" = "1" ]; then
++    # battery info & charge thresholds 
++    if [ -d /sys/devices/platform/smapi ]; then
++        # ThinkPad via tp_smapi
++        for bat in /sys/devices/platform/smapi/BAT[01]; do
++            if [ -d $bat ] && [ "$(cat $bat/installed)" = "1" ]; then
++                case ${bat##/*/} in
++                    BAT0) 
++                        echo "+++ ThinkPad Battery (Main)"
++                        ;;
++                        
++                    BAT1)
++                        echo "+++ ThinkPad Battery (Ultrabay/Slice)"
++                        ;;
++                        
++                    *)
++                        echo "+++ ThinkPad Battery"
++                        ;;
++                esac
++                
++                echoparm $bat/manufacturer
++                echoparm $bat/model
++                echoparm $bat/manufacture_date
++                echoparm $bat/first_use_date
++                echoparm $bat/cycle_count
++                echoparm $bat/design_capacity - mWh
++                echoparm $bat/last_full_capacity - mWh
++                echoparm $bat/remaining_capacity - mWh
++                echoparm $bat/remaining_percent - "%"
++                echoparm $bat/remaining_running_time_now - min
++                echoparm $bat/remaining_charging_time - min
++                echoparm $bat/force_discharge
++                echoparm $bat/power_now - mW
++                echo
++                echoparm $bat/start_charge_thresh - "%"
++                echoparm $bat/stop_charge_thresh - "%"
++                echo
++            fi
++        done
++    elif [ -d /sys/class/power_supply ]; then
++        echo "+++ Battery"
++        if [ -d /sys/devices/platform/thinkpad_acpi ]; then
++            echo "ThinkPad extended battery info not available (missing tp_smapi kernel module)."
++        fi
++        # generic
++        for bat in /sys/class/power_supply/*; do
++            if [ -d $bat ] \
++               && [ "$(cat $bat/type)" = "Battery" ] \
++               && [ "$(cat $bat/present)" = "1" ]; then
++                echoparm $bat/manufacturer
++                echoparm $bat/model_name
++                echoparm $bat/cycle_count 
++                if [ -f $bat/energy_full ]; then 
++                    echoparm $bat/energy_full_design - mWh 000
++                    echoparm $bat/energy_full - mWh 000
++                    echoparm $bat/energy_now - mWh 000
++                    echoparm $bat/power_now - mW 000
++                elif [ -f $bat/charge_full ]; then
++                    echoparm $bat/charge_full_design - mAh 000
++                    echoparm $bat/charge_full - mAh 000
++                    echoparm $bat/charge_now - mAh 000
++                    echoparm $bat/current_now - mA 000
++                fi
++                echoparm $bat/status
++                echo
++            fi
++        done
++    fi
++    
++fi # show_bat
++
++if [ "$show_all" = "1" ]; then
++    # runtime pm
++    echo "+++ Runtime Power Management"
++    for type in $PCID; do
++        for device in $type/*; do
++            if [ -f $device/class ] && [ -f $device/power/control ]; then
++                case $(cat $device/class) in
++                    0x020000) # ethernet
++                        echoparm $device/power/control - Ethernet
++                        ;;
++                    
++                    0x028000) # wireless
++                        echoparm $device/power/control - Wireless
++                        ;;
++                                        
++                    0x040300) # audio
++                        echoparm $device/power/control - Audio
++                        ;;
++                    
++                    0x060000) # host bridge
++                        echoparm $device/power/control - Host Bridge
++                        ;;
++                        
++                    0x080500) # SD card reader
++                        echoparm $device/power/control - SD Card Reader
++                        ;;
++                        
++                    0x088000|0x088001) # card reader
++                        echoparm $device/power/control - Card Reader
++                        ;;
++                        
++                    0x0c0000|0x0c0010) # firewire
++                        echoparm $device/power/control - Firewire
++                        ;;
++                esac 
++            fi
++        done
++    done
++    echo 
++    
++    # usb autosuspend
++    echo "+++ USB"
++    if [ "$USB_AUTOSUSPEND" = "1" ]; then
++        echo "tlp usb autosuspend = enabled"
++    else
++        echo "tlp usb autosuspend = not enabled"
++    fi
++    echo "tlp usb blacklist = ${USB_BLACKLIST:=(not configured)}"
++    echo
++    
++    if [ -x $TLPUSB ]; then
++        $TLPUSB 
++    else
++        echo "Error: missing subcommand $TLPUSB."
++    fi
++    echo 
++
++fi # show_all
++
++exit 0
+diff --git a/tlp.in b/tlp.in
+new file mode 100644
+index 0000000..17f6632
+--- /dev/null
++++ b/tlp.in
+@@ -0,0 +1,176 @@
++#!/bin/sh
++# tlp - adjust power settings 
++#
++# Copyright (c) 2012 Thomas Koch <linrunner at gmx.net>
++# This software is licensed under the GPL v2.
++
++# --- Constants
++readonly LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++
++# --- Source libraries
++if [ ! -f $LIB ]; then
++    echo "Error: missing function library \'$LIB\'."
++    exit 1
++fi
++. $LIB
++
++# --- MAIN
++read_defaults
++check_tlp_enabled || exit 1
++check_laptop_mode_tools || exit 2
++
++# Get cmd line arg
++mode=$(echo $1 | tr "[:upper:]" "[:lower:]")
++
++echo_debug "run" "+++ mode=$mode"
++echo_debug "path" "PATH=$PATH"
++
++case "$mode" in
++    start) # Set start power mode depending on state
++        check_root
++        get_power_state
++        pwr=$?
++        load_tp_modules
++        set_laptopmode $pwr
++        set_dirty_parms $pwr
++        set_scaling_governor $pwr
++        set_scaling_min_max_freq $pwr
++        set_sched_powersave $pwr
++        set_nmi_watchdog
++        set_phc_controls $pwr
++        set_disk_apm_level $pwr
++        set_disk_spindown_timeout $pwr
++        set_disk_io_sched
++        set_sata_link_power $pwr
++        set_pcie_aspm $pwr
++        set_i915_power_mgmt $pwr
++        set_radeon_profile $pwr
++        set_wifi_power_mode $pwr
++        disable_wake_on_lan $pwr
++        set_sound_power_mode $pwr
++        set_runtime_pm $pwr
++        enable_usb_suspend 0
++        set_charge_thresholds
++        [ "$pwr" = "1" ] && poweroff_drivebay 0
++        
++        echo_started_mode $pwr
++        ;;
++
++    true|bat*) # Set battery power mode
++        check_root
++        load_tp_modules
++        set_laptopmode 1
++        set_dirty_parms 1
++        set_scaling_governor 1
++        set_scaling_min_max_freq 1
++        set_sched_powersave 1
++        set_nmi_watchdog
++        set_phc_controls 1
++        set_disk_apm_level 1
++        set_disk_spindown_timeout 1
++        set_disk_io_sched
++        set_sata_link_power 1
++        set_pcie_aspm 1
++        set_i915_power_mgmt 1
++        set_radeon_profile 1
++        set_wifi_power_mode 1
++        disable_wake_on_lan 1
++        set_sound_power_mode 1
++        set_runtime_pm 1
++        [ "$X_TLP_USB_MODE" = "1" ] && enable_usb_suspend 0
++        poweroff_drivebay 0
++        
++        echo_started_mode 1
++        ;;
++        
++    false|ac) # Set ac power mode
++        check_root
++        load_tp_modules
++        set_laptopmode 0
++        set_dirty_parms 0
++        set_scaling_governor 0
++        set_scaling_min_max_freq 0
++        set_sched_powersave 0
++        set_nmi_watchdog
++        set_phc_controls 0
++        set_disk_apm_level 0
++        set_disk_spindown_timeout 0
++        set_disk_io_sched
++        set_sata_link_power 0
++        set_pcie_aspm 0
++        set_i915_power_mgmt 0
++        set_radeon_profile 0
++        set_wifi_power_mode 0
++        disable_wake_on_lan 0
++        set_sound_power_mode 0
++        set_runtime_pm 0
++        [ "$X_TLP_USB_MODE" = "1" ] && enable_usb_suspend 0
++         
++        echo_started_mode 0
++        ;;
++        
++    wifi) # Set wifi power mode depending on state
++        check_root
++        get_power_state
++        pwr=$?
++        set_wifi_power_mode $pwr $2
++        ;;
++
++    usb) # Enable usb autosuspend
++        check_root
++        enable_usb_suspend 1
++        ;;
++        
++    bayoff) # Power off drive bay
++        check_root
++        poweroff_drivebay 1
++        ;;
++        
++    xlogin) # Called on desktop login
++        ;;
++
++    discharge) # Discharge battery completely (to recalibrate)
++        check_root
++        load_tp_modules
++        discharge_battery $2
++        ;;
++        
++    setcharge) # Set charge thresholds (temporarily)
++        check_root
++        load_tp_modules
++        setcharge_battery $2 $3 $4
++        ;;
++
++    fullcharge) # Charge battery up to 100% (temporarily)
++        check_root
++        load_tp_modules
++        setcharge_battery 96 100 $2
++        ;;
++        
++    recalibrate) # Recalibrate battery, i.e. discharge and charge to 100%
++        check_root
++        load_tp_modules
++        setcharge_battery 96 100 $2
++        discharge_battery $2
++        ;;        
++        
++    stat) # Show status
++        tlp-stat
++        ;;
++
++    diskid) # Show disk-by-id
++        { for dev in $(ls /dev/disk/by-id/ | egrep '^ata' | egrep -v '\-part[1-9]+'); do
++            get_disk_dev $dev
++            echo "$disk_dev: $disk_id"
++        done } | sort
++        ;;
++        
++    *) 
++        echo "Error: unknown command \"$mode\"."  1>&2
++        echo "Usage: tlp start|true|bat|false|ac|wifi|usb|bayoff|discharge|setcharge|fullcharge|recalibrate|stat|diskid" 1>&2
++        ;;
++esac
++
++exit 0
++
++
+diff --git a/tlp.init b/tlp.init
+index 4c0f26d..06080cd 100755
+--- a/tlp.init
++++ b/tlp.init
+@@ -11,8 +11,8 @@
+ ### END INIT INFO
+ 
+ TLP=/usr/sbin/tlp
+-LIB=/usr/lib/tlp-pm/tlp-functions
+-RFLIB=/usr/lib/tlp-pm/tlp-rf-func
++LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
+ 
+ [ -x $TLP ] || exit 0
+ 
+diff --git a/tlp.upstart b/tlp.upstart
+deleted file mode 100644
+index 90c8f99..0000000
+--- a/tlp.upstart
++++ /dev/null
+@@ -1,64 +0,0 @@
+-# TLP settings on system startup/shutdown
+-
+-description "tlp"
+-
+-start on ( virtual-filesystems and runlevel [2345] )
+-stop on runlevel [!2345]
+-
+-env TLP=/usr/sbin/tlp
+-env LIB=/usr/lib/tlp-pm/tlp-functions
+-env RFLIB=/usr/lib/tlp-pm/tlp-rf-func
+-
+-pre-start script
+-    [ -x $TLP ] || exit 4
+-
+-    [ -f $LIB ] || exit 4
+-    [ -f $RFLIB ] || exit 4    
+-    . $LIB
+-    . $RFLIB
+-    
+-    read_defaults || exit 2
+-    
+-    echo_debug "run" "+++ upstart pre-start"
+-    echo_debug "path" "PATH=$PATH"
+-    check_tlp_enabled || exit 1
+-    
+-    echo -n "Loading tp-smapi kernel module..."
+-    load_tp_modules
+-    echo "done. "
+-    
+-    init_radio_devices start
+-        
+-    echo -n "Setting battery charge thresholds..."
+-    set_charge_thresholds
+-    echo "done."
+-
+-    UPWR=$(which upower)
+-    if [ -n "$UPWR" ]; then
+-        echo -n "Starting upowerd..."
+-        $UPWR -e > /dev/null 2&>1
+-        echo "done."
+-        echo_debug "run" "upower_start"
+-    fi
+-    
+-end script
+-
+-post-stop script
+-    [ -x $TLP ] || exit 4
+-    [ -f $LIB ] || exit 4
+-    [ -f $RFLIB ] || exit 4
+-    [ -f $CONFFILE ] || exit 2
+-
+-    . $LIB  
+-    . $RFLIB
+-    read_defaults
+-    
+-    echo_debug "run" "+++ upstart post-stop"
+-    echo_debug "path" "PATH=$PATH"
+-    check_tlp_enabled || exit 1
+-
+-    init_radio_devices stop
+-    
+-end script
+-
+-
+diff --git a/tlp.upstart.in b/tlp.upstart.in
+new file mode 100644
+index 0000000..09e4f95
+--- /dev/null
++++ b/tlp.upstart.in
+@@ -0,0 +1,64 @@
++# TLP settings on system startup/shutdown
++
++description "tlp"
++
++start on ( virtual-filesystems and runlevel [2345] )
++stop on runlevel [!2345]
++
++env TLP=/usr/sbin/tlp
++env LIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-functions
++env RFLIB=/usr/@LIBEXECDIR@/tlp-pm/tlp-rf-func
++
++pre-start script
++    [ -x $TLP ] || exit 4
++
++    [ -f $LIB ] || exit 4
++    [ -f $RFLIB ] || exit 4    
++    . $LIB
++    . $RFLIB
++    
++    read_defaults || exit 2
++    
++    echo_debug "run" "+++ upstart pre-start"
++    echo_debug "path" "PATH=$PATH"
++    check_tlp_enabled || exit 1
++    
++    echo -n "Loading tp-smapi kernel module..."
++    load_tp_modules
++    echo "done. "
++    
++    init_radio_devices start
++        
++    echo -n "Setting battery charge thresholds..."
++    set_charge_thresholds
++    echo "done."
++
++    UPWR=$(which upower)
++    if [ -n "$UPWR" ]; then
++        echo -n "Starting upowerd..."
++        $UPWR -e > /dev/null 2&>1
++        echo "done."
++        echo_debug "run" "upower_start"
++    fi
++    
++end script
++
++post-stop script
++    [ -x $TLP ] || exit 4
++    [ -f $LIB ] || exit 4
++    [ -f $RFLIB ] || exit 4
++    [ -f $CONFFILE ] || exit 2
++
++    . $LIB  
++    . $RFLIB
++    read_defaults
++    
++    echo_debug "run" "+++ upstart post-stop"
++    echo_debug "path" "PATH=$PATH"
++    check_tlp_enabled || exit 1
++
++    init_radio_devices stop
++    
++end script
++
++
+-- 
+1.7.7.6
+

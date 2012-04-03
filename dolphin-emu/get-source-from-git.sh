@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TEMPDIR=$(mktemp -d)
-SOURCEDIR=$(cd $(dirname ${0}) | pwd)
+SOURCEDIR=$(cd $(dirname ${0}) && pwd)
 
 pushd ${TEMPDIR}
 

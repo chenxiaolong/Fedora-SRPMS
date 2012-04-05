@@ -1,0 +1,45 @@
+diff -up pm-utils-1.4.1/pm/sleep.d/01grub.orig pm-utils-1.4.1/pm/sleep.d/01grub
+--- pm-utils-1.4.1/pm/sleep.d/01grub.orig	2010-07-04 16:42:51.000000000 +0200
++++ pm-utils-1.4.1/pm/sleep.d/01grub	2011-08-22 14:11:39.460613138 +0200
+@@ -4,7 +4,8 @@
+ 
+ default_resume_kernel()
+ {
+-        [ "$1" = "suspend" ] && return $NA
++	local g2reboot
++	[ "$1" = "suspend" ] && return $NA
+ 	case $(uname -m) in
+ 		i?86|x86_64|athlon)
+ 	    		;;
+@@ -13,14 +14,26 @@ default_resume_kernel()
+ 	    		;;
+ 	esac
+ 
+-	[ -x /sbin/grubby -a -x /sbin/grub ] || return $NA
++	[ -x /sbin/grubby -a \( -x /sbin/grub -o -r /etc/grub2.cfg \) ] || \
++		return $NA
+ 	[ -e "/boot/vmlinuz-$(uname -r)" ] || return 1
+-	out=$(/sbin/grubby --info /boot/vmlinuz-$(uname -r) |grep index)
++	out=$(/sbin/grubby --info /boot/vmlinuz-$(uname -r) |grep index | \
++		head -n 1)
+ 	[ -n "${out}" ] || return 1
+ 	current=${out#index=}
+-	echo "savedefault --default=${current} --once" | \
+-		/sbin/grub --device-map=/boot/grub/device.map \
+-		--batch --no-floppy --no-curses >/dev/null
++	if [ -r /etc/grub2.cfg ]; then
++		# to enable this functionality in grub2
++		# GRUB_DEFAULT=saved is needed in /etc/default/grub
++		# if you want to be able to by-pass the selection in the
++		# boot menu, also use GRUB_SAVEDEFAULT=true
++		g2reboot=`which grub2-reboot 2>/dev/null` || \
++			g2reboot=`which grub-reboot 2>/dev/null` || return $NA
++		$g2reboot ${current} > /dev/null
++	else
++		echo "savedefault --default=${current} --once" | \
++			/sbin/grub --device-map=/boot/grub/device.map \
++			--batch --no-floppy --no-curses >/dev/null
++	fi
+ 
+ 	return 0
+ }

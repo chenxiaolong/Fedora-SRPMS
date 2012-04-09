@@ -1,6 +1,6 @@
 diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
 --- HYBRID.orig/hybrid-detect.c	2012-04-08 02:24:25.647725623 -0400
-+++ HYBRID/hybrid-detect.c	2012-04-08 21:53:18.764663792 -0400
++++ HYBRID/hybrid-detect.c	2012-04-09 00:49:32.023876804 -0400
 @@ -6,6 +6,9 @@
   * Authored by:
   *   Alberto Milone
@@ -94,7 +94,7 @@ diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
  }
  
  int main(int argc, char *argv[]) {
-@@ -181,45 +168,85 @@
+@@ -181,45 +168,86 @@
              fflush(pfile);
              fclose(pfile);
  
@@ -165,7 +165,8 @@ diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
 +                    free(alternative);
 +
 +                    /* Set alternative for nvidia libraries (xorg-x11-drv-nvidia-libs) */
-+                    if (strcmp(arch_path, "nvidia-lib64") == 0) {
++                    if (strcmp(arch_path, "nvidia-lib64") == 0 &&
++                        access("/usr/share/nvidia-common/nvidia-lib.conf", F_OK) == 0) {
 +                        /* If on 64 bit system and 32 bit libraries are installed,
 +                         * then also update the alternatives for the 32 bit
 +                         * libraries. */

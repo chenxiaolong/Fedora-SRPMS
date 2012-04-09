@@ -12,7 +12,7 @@ Source0:	http://downloads.sourceforge.net/project/refind/%{version}/refind-src-%
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:	gnu-efi
-Requires:	docfstools
+Requires:	dosfstools
 Requires:	efibootmgr
 
 # Fedora doesn't support 32 bit (U)EFI anyway

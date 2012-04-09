@@ -1,0 +1,12 @@
+[Unit]
+Description=Detect which graphics card is enabled in an Intel/nVidia hybrid graphics laptop
+After=syslog.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/hybrid-detect
+
+[Install]
+WantedBy=multi-user.target

@@ -6,8 +6,8 @@
 
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
-Version:         295.33
-Release:         4%{?dist}
+Version:         295.40
+Release:         1%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
 Group:           User Interface/X Hardware Support
@@ -526,6 +526,10 @@ fi
 
 
 %changelog
+* Thu Apr 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.40-1
+- Update to version 295.40
+- Fixes security vulnerability CVE-2012-0946
+
 * Sat Apr 07 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.33-4
 - Add support for detecting hybrid graphics
   - Disables nVidia libraries when booted with Intel graphics

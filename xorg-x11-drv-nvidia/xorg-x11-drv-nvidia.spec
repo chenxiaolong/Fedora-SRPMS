@@ -7,7 +7,7 @@
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
 Version:         295.40
-Release:         1%{?dist}
+Release:         2%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
 Group:           User Interface/X Hardware Support
@@ -405,8 +405,6 @@ if [ "$1" -eq "0" ]; then
     mv  %{_sysconfdir}/X11/xorg.conf %{_sysconfdir}/X11/xorg.conf.%{name}_uninstalled &>/dev/null
 fi || :
 
-
-%postun
 # Remove alternatives
 %{_sbindir}/update-alternatives --remove \
   00-nvidia.conf \
@@ -418,7 +416,7 @@ fi || :
   /dev/null
 
 
-%postun libs
+%preun libs
 # Remove alternatives
 %{_sbindir}/update-alternatives --remove \
   nvidia-%{_lib}.conf \
@@ -429,7 +427,8 @@ fi || :
   nvidia-%{_lib}.conf \
   /dev/null
 
-/sbin/ldconfig
+
+%postun libs -p /sbin/ldconfig
 
 
 %post -n nvidia-common
@@ -526,6 +525,10 @@ fi
 
 
 %changelog
+* Fri Apr 13 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.40-2
+- Move the removal of alternatives from postun to preun
+- Remove debug output in hybrid-detect tool (accidental "TEMP: ...") :D
+
 * Thu Apr 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.40-1
 - Update to version 295.40
 - Fixes security vulnerability CVE-2012-0946

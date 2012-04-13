@@ -1,6 +1,6 @@
 diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
 --- HYBRID.orig/hybrid-detect.c	2012-04-08 02:24:25.647725623 -0400
-+++ HYBRID/hybrid-detect.c	2012-04-09 00:49:32.023876804 -0400
++++ HYBRID/hybrid-detect.c	2012-04-13 01:33:33.112015196 -0400
 @@ -6,6 +6,9 @@
   * Authored by:
   *   Alberto Milone
@@ -19,7 +19,7 @@ diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
  
  #define PCI_CLASS_PREHISTORIC           0x00
  
-@@ -65,52 +69,35 @@
+@@ -65,52 +69,34 @@
        || ((((c) & 0x00ffff00)                                           \
             == ((PCI_CLASS_PROCESSOR << 16) | (PCI_SUBCLASS_PROCESSOR_COPROC << 8)))) )
  
@@ -85,7 +85,6 @@ diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
 +    else if (strcmp(pattern, "nvidia") == 0) {
 +        char *temp;
 +        asprintf(&temp, "/usr/share/nvidia-common/%s.conf", arch_path);
-+printf("*TEMP: %s\n", temp);
 +        return temp;
 +    }
 +    else {
@@ -94,7 +93,7 @@ diff -Nru HYBRID.orig/hybrid-detect.c HYBRID/hybrid-detect.c
  }
  
  int main(int argc, char *argv[]) {
-@@ -181,45 +168,86 @@
+@@ -181,45 +167,86 @@
              fflush(pfile);
              fclose(pfile);
  

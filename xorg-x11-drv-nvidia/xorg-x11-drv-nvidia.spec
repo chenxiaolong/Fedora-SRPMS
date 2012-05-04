@@ -6,7 +6,7 @@
 
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
-Version:         295.40
+Version:         295.49
 Release:         2%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
@@ -18,13 +18,7 @@ Source1:         ftp://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDI
 Source2:         00-nvidia.conf
 Source6:         blacklist-nouveau.conf
 Source11:        nvidia-README.Fedora
-Source97:        hybrid-detect.service
-# From Ubuntu's nvidia-common version 1:0.2.42
-Source98:        hybrid-detect.c
 Source99:        00-ignoreabi.conf
-
-# Patch hybrid-detect for Fedora
-Patch98:         hybrid-detect_for_Fedora.patch
 
 BuildRoot:       %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %if 0%{?fedora} > 11 || 0%{?rhel} > 5
@@ -60,6 +54,7 @@ Conflicts:       selinux-policy-targeted < 3.10.0-53
 %endif
 
 
+
 Provides:        nvidia-kmod-common = %{?epoch}:%{version}
 Conflicts:       xorg-x11-drv-nvidia-beta
 Conflicts:       xorg-x11-drv-nvidia-legacy
@@ -77,19 +72,8 @@ Provides:        nvidia-x11-drv = %{version}-%{release}
 Obsoletes:       xorg-x11-drv-nvidia-newest < %{version}-100
 Provides:        xorg-x11-drv-nvidia-newest = %{version}-101
 
-# Allow both graphics card to work (mutually exclusive) without uninstalling
-# this package.
 Requires(post):  %{_sbindir}/update-alternatives
 Requires(postun): %{_sbindir}/update-alternatives
-
-# Require nvidia-common for hybrid graphics detection tool
-Requires:        nvidia-common = %{?epoch}:%{version}-%{release}
-
-# pciaccess required for building hybrid-detect
-BuildRequires:   libpciaccess-devel
-
-# Required for _unitdir macro
-BuildRequires:   systemd-units
 
 %{?filter_setup:
 %filter_from_provides /^libnvidia/d;
@@ -106,7 +90,6 @@ BuildRequires:   systemd-units
 %filter_from_requires /^libglx\.so/d;
 %filter_setup
 }
-
 
 %description
 This package provides the most recent NVIDIA display driver which allows for
@@ -129,11 +112,9 @@ Requires:        %{name}-libs-%{_target_cpu} = %{?epoch}:%{version}-%{release}
 Obsoletes:       xorg-x11-drv-nvidia-newest-devel < %{version}-100
 Provides:        xorg-x11-drv-nvidia-newest-devel = %{version}-101
 
-
 %description devel
 This package provides the development files of the %{name} package,
 such as OpenGL headers.
-
 
 %package libs
 Summary:         Libraries for %{name}
@@ -147,36 +128,15 @@ Obsoletes:       %{name}-libs-32bit <= %{?epoch}:%{version}-%{release}
 Obsoletes:       nvidia-x11-drv-32bit < %{version}-%{release}
 Provides:        nvidia-x11-drv-32bit = %{version}-%{release}
 %endif
-# Introduced in F10 when 173xx has forked to legacy serie
+#Introduced in F10 when 173xx has forked to legacy serie
 Obsoletes:       xorg-x11-drv-nvidia-newest-libs < %{version}-100
 Provides:        xorg-x11-drv-nvidia-newest-libs = %{version}-101
 
-# Require nvidia-common for hybrid graphics detection tool
-Requires:        nvidia-common = %{?epoch}:%{version}-%{release}
-
+Requires(post):  %{_sbindir}/update-alternatives
+Requires(postun): %{_sbindir}/update-alternatives
 
 %description libs
 This package provides the shared libraries for %{name}.
-
-
-%package -n nvidia-common
-Summary:         Common files for %{name}
-Group:           User Interface/X Hardware Support
-
-# systemd service required for detecting which graphics card is enabled at boot
-Requires(post):  systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
-
-# Require the libs, or the tool will fail, since there would be no symlinks
-# for the update-alternatives utility
-Requires:        %{name}-libs = %{?epoch}:%{version}-%{release}
-
-
-%description -n nvidia-common
-This package contains a utility that allows laptops with hybrid graphics and
-a hardware mux to switch between the integrated and dedicated graphics cards
-without removing the nVidia packages.
 
 
 %prep
@@ -191,13 +151,9 @@ ln -s nvidiapkg-x86 nvidiapkg
 ln -s nvidiapkg-x64 nvidiapkg
 %endif
 
-# Patch hybrid-detect for Fedora
-cp %{SOURCE98} .
-%patch98 -p1 -b .hybrid
-
-
 %build
-gcc -o hybrid-detect hybrid-detect.c $(pkg-config --cflags --libs pciaccess)
+# Nothing to build
+echo "Nothing to build"
 
 
 %install
@@ -233,13 +189,13 @@ install -p -m 0755 libOpenCL.so.1.0.0          $RPM_BUILD_ROOT%{nvidialibdir}/
 install -p -m 0755 tls/lib*.so.%{version}      $RPM_BUILD_ROOT%{nvidialibdir}/tls/
 
 # .. but some in a different place
-install -m 0755 -d $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
+install -m 0755 -d $RPM_BUILD_ROOT%{_libdir}/xorg/modules/extensions/nvidia/
 install -m 0755 -d $RPM_BUILD_ROOT%{_libdir}/xorg/modules/drivers/
 rm -f $RPM_BUILD_ROOT%{nvidialibdir}/lib{nvidia-wfb,glx,vdpau*}.so.%{version}
 
 # Finish up the special case libs
-install -p -m 0755 libnvidia-wfb.so.%{version} $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
-install -p -m 0755 libglx.so.%{version}        $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
+install -p -m 0755 libnvidia-wfb.so.%{version} $RPM_BUILD_ROOT%{_libdir}/xorg/modules/extensions/nvidia/
+install -p -m 0755 libglx.so.%{version}        $RPM_BUILD_ROOT%{_libdir}/xorg/modules/extensions/nvidia/
 install -p -m 0755 nvidia_drv.so               $RPM_BUILD_ROOT%{_libdir}/xorg/modules/drivers/
 install -p -m 0755 libvdpau*.so.%{version}     $RPM_BUILD_ROOT%{_libdir}/vdpau/
 install -p -m 0644 libXvMCNVIDIA.a             $RPM_BUILD_ROOT%{nvidialibdir}/
@@ -285,47 +241,29 @@ execstack -c $RPM_BUILD_ROOT%{_bindir}/nvidia-smi
 %endif
 
 #Install static driver dependant configuration files
+install -m 0755 -d $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d/
+install -pm 0644 %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/X11/modulepath.nvidia.conf
+sed -i -e 's|@LIBDIR@|%{_libdir}|g' $RPM_BUILD_ROOT%{_sysconfdir}/X11/modulepath.nvidia.conf
+touch -r %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/X11/modulepath.nvidia.conf
 %{?_with_ignoreabi:
-install -m  0755             $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d/
-install -pm 0644 %{SOURCE99} $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d/
+install -pm 0644 %{SOURCE99} $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d
 }
 
-# Allow the update-alternatives utility to determine whether or not the nvidia
-# libraries are used (for hybrid graphics)
-install -m 0755 -d       $RPM_BUILD_ROOT%{_datadir}/nvidia-common/
-echo "%{nvidialibdir}" > $RPM_BUILD_ROOT%{_datadir}/nvidia-common/nvidia-%{_lib}.conf
+# Allow hybrid-detect package to add hybrid graphics functionality
+install -m 0755 -d       $RPM_BUILD_ROOT%{_datadir}/nvidia/
+echo "%{nvidialibdir}" > $RPM_BUILD_ROOT%{_datadir}/nvidia/nvidia-%{_lib}.conf
 
 # For update-alternatives
 install -m 0755 -d $RPM_BUILD_ROOT%{_sysconfdir}/ld.so.conf.d/
 touch $RPM_BUILD_ROOT%{_sysconfdir}/ld.so.conf.d/nvidia-%{_lib}.conf
 
-# Install hybrid-detect tool
-install -m 0755 -d                  $RPM_BUILD_ROOT%{_sbindir}/
-install -m 0755    ../hybrid-detect $RPM_BUILD_ROOT%{_sbindir}/
-# hybrid-detect can be stripped
-strip                               $RPM_BUILD_ROOT%{_sbindir}/hybrid-detect
-
-# Install systemd service for hybrid-detect
-install -m 0755 -d             $RPM_BUILD_ROOT%{_unitdir}/
-install -m 0644    %{SOURCE97} $RPM_BUILD_ROOT%{_unitdir}/
-
-# File required by hybrid-detect (ghosted in the files section)
-install -m 0755 -d $RPM_BUILD_ROOT%{_sharedstatedir}/nvidia-common
-touch              $RPM_BUILD_ROOT%{_sharedstatedir}/nvidia-common/last_gfx_boot
-
-# Create alternative for the Xorg configuration file, so Xorg does not try to
-# load the nVidia extensions when the Intel graphics card is used.
-install -m 0755 -d $RPM_BUILD_ROOT%{_datadir}/X11/xorg.conf.d/
-touch              $RPM_BUILD_ROOT%{_datadir}/X11/xorg.conf.d/00-nvidia.conf
-install -m 0644 %{SOURCE2} \
-                   $RPM_BUILD_ROOT%{_datadir}/nvidia-common/
-sed -i -e 's|@LIBDIR@|%{_libdir}|g' \
-                   $RPM_BUILD_ROOT%{_datadir}/nvidia-common/00-nvidia.conf
+# Alternative for Xorg configuration file
+install -m 0755 -d $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d/
+touch              $RPM_BUILD_ROOT%{_sysconfdir}/X11/xorg.conf.d/00-gfx.conf
 
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-
 
 %post
 if [ "$1" -eq "1" ]; then
@@ -342,49 +280,25 @@ if [ "$1" -eq "1" ]; then
   fi
 fi || :
 
-# Install alternatives for Xorg configuration file
+# Install default alternative for Xorg configuration file
 %{_sbindir}/update-alternatives --install \
-  %{_datadir}/X11/xorg.conf.d/00-nvidia.conf \
-  00-nvidia.conf \
-  %{_datadir}/nvidia-common/00-nvidia.conf \
+  %{_sysconfdir}/X11/xorg.conf.d/00-gfx.conf \
+  00-gfx.conf \
+  %{_sysconfdir}/X11/modulepath.nvidia.conf \
   10
-# Set /dev/null as an alternative to disable the nVidia libraries
-%{_sbindir}/update-alternatives --install \
-  %{_datadir}/X11/xorg.conf.d/00-nvidia.conf \
-  00-nvidia.conf \
-  /dev/null \
-  10
-
-# Run hybrid-detect to set the alternatives based on whether the Intel or nVidia
-# graphics card is enabled.
-%{_sbindir}/hybrid-detect &>/dev/null || :
-
-/sbin/ldconfig
-
 
 %post libs
 # Ensure that the old ldconfig configuration file is removed
 rm -f %{_sysconfdir}/ld.so.conf.d/nvidia-%{_lib}.conf
 
-# Install alternatives
+# Install default alternative for libraries
 %{_sbindir}/update-alternatives --install \
   %{_sysconfdir}/ld.so.conf.d/nvidia-%{_lib}.conf \
   nvidia-%{_lib}.conf \
-  %{_datadir}/nvidia-common/nvidia-%{_lib}.conf \
+  %{_datadir}/nvidia/nvidia-%{_lib}.conf \
   10
-# Set /dev/null as an alternative to disable the nVidia libraries
-%{_sbindir}/update-alternatives --install \
-  %{_sysconfdir}/ld.so.conf.d/nvidia-%{_lib}.conf \
-  nvidia-%{_lib}.conf \
-  /dev/null \
-  10
-
-# Run hybrid-detect to set the alternatives based on whether the Intel or nVidia
-# graphics card is enabled.
-%{_sbindir}/hybrid-detect &>/dev/null || :
 
 /sbin/ldconfig
-
 
 %preun
 if [ "$1" -eq "0" ]; then
@@ -400,56 +314,23 @@ if [ "$1" -eq "0" ]; then
         --remove-args='nouveau.modeset=0 rdblacklist=nouveau rd.driver.blacklist=nouveau nomodeset' &>/dev/null
     done
   fi
-  # Backup and disable previously used xorg.conf
+  #Backup and disable previously used xorg.conf
   [ -f %{_sysconfdir}/X11/xorg.conf ] && \
     mv  %{_sysconfdir}/X11/xorg.conf %{_sysconfdir}/X11/xorg.conf.%{name}_uninstalled &>/dev/null
-fi || :
+fi ||:
 
-# Remove alternatives
+# Remove alternative
 %{_sbindir}/update-alternatives --remove \
-  00-nvidia.conf \
-  %{_datadir}/nvidia-common/00-nvidia.conf
+  00-gfx.conf \
+  %{_sysconfdir}/X11/modulepath.nvidia.conf
 
-# Remove /dev/null alternative
-%{_sbindir}/update-alternatives --remove \
-  00-nvidia.conf \
-  /dev/null
-
-
-%preun libs
-# Remove alternatives
+%postun libs
+# Remove alternative
 %{_sbindir}/update-alternatives --remove \
   nvidia-%{_lib}.conf \
-  %{_datadir}/nvidia-common/nvidia-%{_lib}.conf
+  %{_datadir}/nvidia/nvidia-%{_lib}.conf
 
-# Remove /dev/null alternatives
-%{_sbindir}/update-alternatives --remove \
-  nvidia-%{_lib}.conf \
-  /dev/null
-
-
-%postun libs -p /sbin/ldconfig
-
-
-%post -n nvidia-common
-if [ ${1} -eq 1 ]; then
-  # Initial installation
-  /bin/systemctl daemon-reload &>/dev/null || :
-  # Enable service
-  /bin/systemctl enable hybrid-detect.service &>/dev/null || :
-fi
-
-
-%preun -n nvidia-common
-if [ ${1} -eq 0 ]; then
-  # Package removal
-  /bin/systemctl --no-reload disable hybrid-detect.service &>/dev/null || :
-fi
-
-
-%postun -n nvidia-common
-/bin/systemctl daemon-reload &>/dev/null || :
-
+/sbin/ldconfig
 
 %files
 %defattr(-,root,root,-)
@@ -464,24 +345,22 @@ fi
 %{?_with_ignoreabi:
 %config %{_sysconfdir}/X11/xorg.conf.d/00-ignoreabi.conf
 }
+%config %{_sysconfdir}/X11/modulepath.nvidia.conf
 %config(noreplace) %{_sysconfdir}/modprobe.d/blacklist-nouveau.conf
 #{_initrddir}/nvidia
 %{_bindir}/nvidia-bug-report.sh
 %{_bindir}/nvidia-smi
 #{_sbindir}/nvidia-config-display
 # Xorg libs that do not need to be multilib
+%dir %{_libdir}/xorg/modules/extensions/nvidia
 %{_libdir}/xorg/modules/drivers/nvidia_drv.so
-%{_libdir}/nvidia-xorg/libglx.so*
-%{_libdir}/nvidia-xorg/libnvidia-wfb.so*
+%{_libdir}/xorg/modules/extensions/nvidia/*.so*
 #/no_multilib
 %{_datadir}/pixmaps/*.png
 %{_mandir}/man1/nvidia-smi.*
 
 # For update-alternatives
-%ghost %{_datadir}/X11/xorg.conf.d/00-nvidia.conf
-%{_datadir}/nvidia-common/00-nvidia.conf
-%dir %{_datadir}/nvidia-common
-
+%ghost %{_sysconfdir}/X11/xorg.conf.d/00-gfx.conf
 
 %files libs
 %defattr(-,root,root,-)
@@ -497,9 +376,8 @@ fi
 
 # For update-alternatives
 %ghost %{_sysconfdir}/ld.so.conf.d/nvidia-%{_lib}.conf
-%{_datadir}/nvidia-common/nvidia-%{_lib}.conf
-%dir %{_datadir}/nvidia-common
-
+%{_datadir}/nvidia/nvidia-%{_lib}.conf
+%dir %{_datadir}/nvidia/
 
 %files devel
 %defattr(-,root,root,-)
@@ -513,29 +391,15 @@ fi
 %{nvidialibdir}/libnvidia-ml.so
 
 
-%files -n nvidia-common
-%defattr(-,root,root,-)
-# no multilib
-%{_sbindir}/hybrid-detect
-# systemd service
-%{_unitdir}/hybrid-detect.service
-# File created by hybrid-detect
-%ghost %{_sharedstatedir}/nvidia-common/last_gfx_boot
-%dir %{_sharedstatedir}/nvidia-common
-
-
 %changelog
-* Fri Apr 13 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.40-2
-- Move the removal of alternatives from postun to preun
-- Remove debug output in hybrid-detect tool (accidental "TEMP: ...") :D
+* Fri May 04 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.49-2
+- Modified to allow hybrid graphics support by installing hybrid-detect package
 
-* Thu Apr 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.40-1
-- Update to version 295.40
-- Fixes security vulnerability CVE-2012-0946
+* Thu May 03 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.49-1
+- Update to 295.49
 
-* Sat Apr 07 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.33-4
-- Add support for detecting hybrid graphics
-  - Disables nVidia libraries when booted with Intel graphics
+* Wed Apr 11 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.40-1
+- Update to 295.40
 
 * Thu Mar 22 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.33-3
 - Update to 295.33

@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Wine Wordpad
-Comment=Text Editor
-Exec=wine wordpad
-Icon=wordpad
-Terminal=false
-Type=Application
-Categories=X-Wine;

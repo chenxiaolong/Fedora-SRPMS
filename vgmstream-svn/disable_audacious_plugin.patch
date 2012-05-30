@@ -37,4 +37,3 @@ diff -Nru vgmstream.orig/configure.in vgmstream/configure.in
    src/meta/Makefile.unix
 -  unix/Makefile.unix
  ])
-Binary files vgmstream.orig/.configure.in.swp and vgmstream/.configure.in.swp differ

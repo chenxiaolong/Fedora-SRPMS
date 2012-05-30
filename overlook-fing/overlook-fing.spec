@@ -9,7 +9,8 @@ Summary:	Ultimate tool for network discovery and scanning
 Group:		Applications/Internet
 License:	Redistributable, no modification permitted
 URL:		http://over-look.com/site/
-Source0:	http://www.over-look.com/site/index.php/fing-download-linux/64bit/113-overlook-fing-1-4/download
+#Source0:	http://www.over-look.com/site/index.php/fing-download-linux/64bit/113-overlook-fing-1-4/download
+Source0:	overlook-fing-1.4.tgz
 
 BuildRequires:	dos2unix
 

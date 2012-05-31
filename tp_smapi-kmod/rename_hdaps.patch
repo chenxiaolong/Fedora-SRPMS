@@ -1,0 +1,58 @@
+diff -Nru tp_smapi-0.41.orig/Makefile tp_smapi-0.41/Makefile
+--- tp_smapi-0.41.orig/Makefile	2012-05-30 21:16:45.766400999 -0400
++++ tp_smapi-0.41/Makefile	2012-05-30 21:20:05.569467752 -0400
+@@ -14,8 +14,8 @@
+ SHELL       := /bin/bash
+ 
+ ifeq ($(HDAPS),1)
+-TP_MODULES  += hdaps.o
+-LOAD_HDAPS  := insmod ./hdaps.ko
++TP_MODULES  += hdaps-tp-smapi.o
++LOAD_HDAPS  := insmod ./hdaps-tp-smapi.ko
+ else
+ LOAD_HDAPS  := :
+ endif
+@@ -27,7 +27,7 @@
+ endif
+ 
+ ifneq ($(KERNELRELEASE),)
+-	TP_MODULES  += hdaps.o
++	TP_MODULES  += hdaps-tp-smapi.o
+ 	obj-m  := $(TP_MODULES)
+ else
+ endif
+@@ -42,14 +42,14 @@
+ 
+ default: modules
+ 
+-# Build the modules thinkpad_ec.ko, tp_smapi.ko and (if HDAPS=1) hdaps.ko
++# Build the modules thinkpad_ec.ko, tp_smapi.ko and (if HDAPS=1) hdaps-tp-smapi.ko
+ modules: $(KBUILD) $(patsubst %.o,%.c,$(TP_MODULES))
+ 	$(MAKE) -C $(KBUILD) M=$(PWD) O=$(KBUILD) modules
+ 
+ clean:
+ 	rm -f tp_smapi.mod.* tp_smapi.o tp_smapi.ko .tp_smapi.*.cmd
+ 	rm -f thinkpad_ec.mod.* thinkpad_ec.o thinkpad_ec.ko .thinkpad_ec.*.cmd
+-	rm -f hdaps.mod.* hdaps.o hdaps.ko .hdaps.*.cmd
++	rm -f hdaps-tp-smapi.mod.* hdaps-tp-smapi.o hdaps-tp-smapi.ko .hdaps-tp-smapi.*.cmd
+ 	rm -f *~ diff/*~ *.orig diff/*.orig *.rej diff/*.rej
+ 	rm -f tp_smapi-*-for-*.patch
+ 	rm -fr .tmp_versions Modules.symvers diff/hdaps.diff.tmp
+@@ -107,7 +107,7 @@
+ 	mkdir -p $(ORG)/$(IDIR) &&\
+ 	mkdir -p $(ORG)/drivers/hwmon &&\
+ 	cp $(KSRC)/$(TP_DIR)/{Kconfig,Makefile} $(ORG)/$(TP_DIR) &&\
+-	cp $(KSRC)/drivers/hwmon/{Kconfig,hdaps.c} $(ORG)/drivers/hwmon/ &&\
++	cp $(KSRC)/drivers/hwmon/{Kconfig,hdaps-tp-smapi.c} $(ORG)/drivers/hwmon/ &&\
+ 	cp -r $(ORG) $(NEW) &&\
+ 	\
+ 	if [ "$(BASE_IN_PATCH)" == 1 ]; then \
+@@ -118,7 +118,7 @@
+ 	; fi &&\
+ 	\
+ 	if [ "$(HDAPS_IN_PATCH)" == 1 ]; then \
+-		cp $(PWD)/hdaps.c $(NEW)/drivers/hwmon/ &&\
++		cp $(PWD)/hdaps-tp-smapi.c $(NEW)/drivers/hwmon/ &&\
+ 		perl -i -0777 -pe 's/(config SENSORS_HDAPS\n\ttristate [^\n]+\n\tdepends [^\n]+\n)/$$1\tselect THINKPAD_EC\n/' $(NEW)/drivers/hwmon/Kconfig  \
+ 	; fi &&\
+ 	\

@@ -3,7 +3,7 @@
 Name:		tp_smapi-kmod
 
 Version:	0.41
-Release:	2%{?dist}.1
+Release:	3%{?dist}.1
 Summary:	Lenovo/IBM ThinkPad hardware functions kernel module
 
 Group:		System Environment/Kernel
@@ -17,6 +17,9 @@ Source1:	%{name}.conf
 # Debian patch for the Makefile to allow compilation for kernel versions other
 # than the one currently running.
 Patch0:		99_Makefile-for-Debian.patch
+
+# Rename hdaps to hdaps-tp-smapi
+Patch1:		rename_hdaps.patch
 
 # Lenovo and IBM laptops only have x86 architectures
 ExclusiveArch:	i686 x86_64
@@ -77,6 +80,8 @@ kmodtool --target %{_target_cpu} --repo %{repo} --kmodname %{name} %{?buildforke
 
 pushd tp_smapi-%{version}
 %patch0 -p1 -b .fixmake
+%patch1 -p1 -b .renamehdaps
+mv hdaps.c hdaps-tp-smapi.c
 popd
 
 for kernel_version in %{?kernel_versions}; do
@@ -95,7 +100,7 @@ done
 rm -rf $RPM_BUILD_ROOT
 
 for kernel_version in %{?kernel_versions}; do
-  for i in tp_smapi thinkpad_ec hdaps; do
+  for i in tp_smapi thinkpad_ec hdaps-tp-smapi; do
     install -Dm755 _kmod_build_${kernel_version%%___*}/${i}.ko \
       $RPM_BUILD_ROOT%{kmodinstdir_prefix}/${kernel_version%%___*}/%{kmodinstdir_postfix}/${i}.ko
   done
@@ -114,6 +119,10 @@ install -m644 %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/modules-load.d/
 
 
 %changelog
+* Wed May 30 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.41-3.1
+- Rename hdaps to hdaps-tp-smapi
+  - Avoid having to deal with kernel modules that have the same name
+
 * Sat Mar 17 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.41-2.1
 - Include configuration file for systemd that loads the module at boot
 

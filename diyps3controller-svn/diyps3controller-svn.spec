@@ -87,10 +87,10 @@ chmod 0755 $RPM_BUILD_ROOT%{_bindir}/*
 rm -rf $RPM_BUILD_ROOT
 
 
-%post -p /usr/sbin/ldconfig
+%post -p /sbin/ldconfig
 
 
-%postun -p /usr/sbin/ldconfig
+%postun -p /sbin/ldconfig
 
 
 %files

@@ -1,0 +1,15 @@
+[Unit]
+Description=Laptop Power Saving Tools
+After=acpid.service
+Wants=acpid.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/bin/touch /run/laptop-mode-tools/enabled
+ExecStart=/usr/sbin/laptop_mode auto
+ExecStop=/usr/sbin/laptop_mode stop
+ExecStopPost=/usr/bin/rm -f /run/laptop-mode-tools/enabled
+
+[Install]
+WantedBy=multi-user.target

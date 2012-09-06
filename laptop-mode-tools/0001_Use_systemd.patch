@@ -1,0 +1,470 @@
+diff -Nru laptop-mode-tools_1.61.orig/Documentation/readme-debugging.txt laptop-mode-tools_1.61/Documentation/readme-debugging.txt
+--- laptop-mode-tools_1.61.orig/Documentation/readme-debugging.txt	2012-09-06 13:38:13.206845123 -0400
++++ laptop-mode-tools_1.61/Documentation/readme-debugging.txt	2012-09-06 14:21:02.113040668 -0400
+@@ -21,7 +21,7 @@
+ # in shell debug mode. Warning: This will create a lot of text output.
+ #
+ # This shell debug mode output will be listed on the terminal where laptop-mode-tools'
+-# init script it called.
++# systemd service is started.
+ 
+ # If you are debugging an individual module, perhaps you would want to enable
+ # each module specific debug mode (available in module conf files)
+diff -Nru laptop-mode-tools_1.61.orig/etc/laptop-mode/conf.d/configuration-file-control.conf laptop-mode-tools_1.61/etc/laptop-mode/conf.d/configuration-file-control.conf
+--- laptop-mode-tools_1.61.orig/etc/laptop-mode/conf.d/configuration-file-control.conf	2012-09-06 13:38:13.205845125 -0400
++++ laptop-mode-tools_1.61/etc/laptop-mode/conf.d/configuration-file-control.conf	2012-09-06 15:26:00.513651139 -0400
+@@ -72,8 +72,7 @@
+ #
+ # You can create the alternate configuration files yourself. If you don't, they
+ # will be created by laptop mode tools the next time it is restarted. To force
+-# the files to be created, run the laptop mode tools init script with the
+-# "restart" parameter.
++# the files to be created, restart the laptop-mode-tools systemd service.
+ #
+ CONFIG_FILES="/etc/syslog.conf /etc/syslog-ng/syslog-ng.conf /etc/rsyslog.conf"
+ 
+@@ -88,8 +87,7 @@
+ # daemons as well but your mileage may vary.
+ #
+ # For services listed in CONFIG_FILE_RELOAD_SERVICES, laptop mode tools will
+-# call the init script with the "reload" parameter after configuration files
+-# have been replaced.
++# reload the systemd service after configuration files have been replaced.
+ #
+ CONFIG_FILE_SIGNAL_PROGRAMS="syslogd syslog-ng rsyslogd"
+ CONFIG_FILE_RELOAD_SERVICES=""
+diff -Nru laptop-mode-tools_1.61.orig/etc/laptop-mode/conf.d/start-stop-programs.conf laptop-mode-tools_1.61/etc/laptop-mode/conf.d/start-stop-programs.conf
+--- laptop-mode-tools_1.61.orig/etc/laptop-mode/conf.d/start-stop-programs.conf	2012-09-06 13:38:13.204845127 -0400
++++ laptop-mode-tools_1.61/etc/laptop-mode/conf.d/start-stop-programs.conf	2012-09-06 14:32:32.526284503 -0400
+@@ -9,8 +9,8 @@
+ # ----------------------------
+ #
+ # Laptop mode tools can automatically start and stop programs when entering
+-# various power modes. Put scripts accepting "start" and "stop" parameters
+-# in the directories
++# various power modes. Symlink systemd services from /usr/lib/systemd/system/
++# into the following directories:
+ #    /etc/laptop-mode/batt-stop
+ #    /etc/laptop-mode/batt-start
+ #    /etc/laptop-mode/lm-ac-stop
+@@ -50,8 +50,8 @@
+ # Services to start/stop depending on the power state.
+ #
+ #
+-# These services are started/stopped through their init scripts, together with
+-# the files from the directories mentioned above. Specify the services as a
++# These services are started/stopped through their systemd services, together
++# with the files from the directories mentioned above. Specify the services as a
+ # space separated list.
+ #
+ BATT_STOP=""
+diff -Nru laptop-mode-tools_1.61.orig/etc/laptop-mode/lm-profiler.conf laptop-mode-tools_1.61/etc/laptop-mode/lm-profiler.conf
+--- laptop-mode-tools_1.61.orig/etc/laptop-mode/lm-profiler.conf	2012-09-06 13:38:13.205845125 -0400
++++ laptop-mode-tools_1.61/etc/laptop-mode/lm-profiler.conf	2012-09-06 14:43:00.669975388 -0400
+@@ -22,7 +22,7 @@
+ RECOMMEND_DEFAULT_SERVICES=1
+ 
+ # And which default services are those?
+-DEFAULT_SERVICES="anacron cron atd"
++DEFAULT_SERVICES="crond.service atd.service"
+ 
+ # Which programs should be ignored in the disk access profile? Separete the
+ # programs by spaces. Any programs whose names contain strings listed here willo
+diff -Nru laptop-mode-tools_1.61.orig/man/laptop_mode.8 laptop-mode-tools_1.61/man/laptop_mode.8
+--- laptop-mode-tools_1.61.orig/man/laptop_mode.8	2012-09-06 13:38:13.215845105 -0400
++++ laptop-mode-tools_1.61/man/laptop_mode.8	2012-09-06 14:31:00.565382022 -0400
+@@ -27,8 +27,8 @@
+ It is not recommended to call
+ .I /usr/sbin/laptop_mode
+ directly to start or stop laptop mode, except in hardware event handlers. To
+-apply new configuration settings from \fIlaptop-mode.conf\fP, call the
+-laptop-mode service init script with the reload parameter.
++apply new configuration settings from \fIlaptop-mode.conf\fP, restart the
++laptop-mode-tools systemd service.
+ .SH "COMMANDS" 
+ Specify \fBforce\fP as the second parameter to force laptop_mode to re-apply
+ a state even if the computer is already in that state. These are the values that
+diff -Nru laptop-mode-tools_1.61.orig/man/laptop-mode.conf.8 laptop-mode-tools_1.61/man/laptop-mode.conf.8
+--- laptop-mode-tools_1.61.orig/man/laptop-mode.conf.8	2012-09-06 13:38:13.207845121 -0400
++++ laptop-mode-tools_1.61/man/laptop-mode.conf.8	2012-09-06 15:35:52.767455370 -0400
+@@ -477,8 +477,8 @@
+ .IP "\fBCONTROL_START_STOP\fP" 10
+ If this option is enabled, laptop mode tools will automatically start and stop
+ daemons or other programs for you. The actual configuration of which daemons
+-are to be stopped/started is done by placing links to the daemons' init scripts
+-in the following directories:
++are to be stopped/started is done by placing links to the daemons' systemd
++services (from /usr/lib/systemd/system/) in the following directories:
+ .IP "             \fI/etc/laptop-mode/batt-start\fP"
+ .IP "             \fI/etc/laptop-mode/batt-stop\fP"
+ .IP "             \fI/etc/laptop-mode/lm-ac-start\fP"
+@@ -486,12 +486,9 @@
+ .IP "             \fI/etc/laptop-mode/nolm-ac-start\fP"
+ .IP "             \fI/etc/laptop-mode/nolm-ac-stop\fP"
+ As you have probably guessed, the directories of the form "X-stop-daemons"
+-should contain init scripts of daemons that you want stopped in mode X, while
+-the directories of the form "X-start-daemons" should contain init scripts of
+-daemons that you want started in mode X. Of course, it is possible to put in
+-your own handling of modes as well: the only requirement on the scripts in the
+-directories is that they handle the "start" and "stop" commands, like init
+-scripts usually do.
++should contain links to systemd services of daemons that you want stopped in
++mode X, while the directories of the form "X-start-daemons" should contain links
++to systemd services of daemons that you want started in mode X.
+ 
+ The ordering of the script handling is as follows. When a mode is entered, the
+ actions of the previous mode are undone, in reverse order. This means that if
+@@ -511,10 +508,10 @@
+ .IP "\fBLM_AC_START\fP" 10
+ .IP "\fBNOLM_AC_STOP\fP" 10
+ .IP "\fBNOLM_AC_START\fP" 10
+-These options allow you to stop services (through their init scripts) in certain
+-power states. Specify a space-separated list of service names in these options.
+-These services are started/stopped together with the files from the directories
+-mentioned above. 
++These options allow you to stop services (through their systemd services) in
++certain power states. Specify a space-separated list of service names in these
++options. These services are started/stopped together with the files from the
++directories mentioned above. 
+ 
+ 
+ 
+@@ -626,8 +623,7 @@
+ .IP "" 10
+ You can create the alternate configuration files yourself. If you don't, they
+ will be created by laptop mode tools the next time it is restarted. To force
+-the files to be created, run the laptop-mode service init script with the
+-"restart" parameter.
++the files to be created, restart the laptop-mode-tools systemd service.
+ 
+ .IP "\fBCONFIG_FILE_SIGNAL_PROGRAMS\fP" 10
+ This option should contain a space-separated list of programs that should be
+diff -Nru laptop-mode-tools_1.61.orig/man/lm-profiler.8 laptop-mode-tools_1.61/man/lm-profiler.8
+--- laptop-mode-tools_1.61.orig/man/lm-profiler.8	2012-09-06 13:38:13.207845121 -0400
++++ laptop-mode-tools_1.61/man/lm-profiler.8	2012-09-06 15:20:34.964740285 -0400
+@@ -22,11 +22,11 @@
+ presented with a list of programs that deserve your attention, either because
+ they listen on a network (which is not usually useful when you are working
+ offline) or because they caused disk activity in a disk-spindown-unfriendly
+-pattern. When lm-profiler can guess an init script that belongs to a program,
+-it presents you with the opportunity to disable the program when you are
+-working on battery. It does this by placing a link to the init script in
++pattern. When lm-profiler can guess an systemd service that belongs to a
++program, it presents you with the opportunity to disable the program when you
++are working on battery. It does this by placing a link to the systemd service in
+ /etc/laptop-mode/batt-stop. Any programs that lm-profiler cannot find an
+-init script for is simply reported, so that you can stop the
++systemd service for is simply reported, so that you can stop the
+ program manually if you want to.
+ .PP
+ .B WARNING ABOUT DISABLING PROGRAMS:
+diff -Nru laptop-mode-tools_1.61.orig/usr/sbin/laptop_mode laptop-mode-tools_1.61/usr/sbin/laptop_mode
+--- laptop-mode-tools_1.61.orig/usr/sbin/laptop_mode	2012-09-06 13:38:13.216845103 -0400
++++ laptop-mode-tools_1.61/usr/sbin/laptop_mode	2012-09-06 15:17:34.119758078 -0400
+@@ -220,10 +220,6 @@
+ AUTO_HIBERNATION_BATTERY_CHARGE_PERCENT=
+ MINIMUM_BATTERY_CHARGE_PERCENT=
+ 
+-# Backward compatibility variable that is sometimes
+-# set externally (Debian init system)
+-unset VERBOSE
+-
+ lmt_load_config ()
+ {
+     # Source config. Some config settings have been moved from the main config file
+diff -Nru laptop-mode-tools_1.61.orig/usr/sbin/lm-profiler laptop-mode-tools_1.61/usr/sbin/lm-profiler
+--- laptop-mode-tools_1.61.orig/usr/sbin/lm-profiler	2012-09-06 13:38:13.217845102 -0400
++++ laptop-mode-tools_1.61/usr/sbin/lm-profiler	2012-09-06 15:15:06.252792261 -0400
+@@ -6,8 +6,8 @@
+ # lm-profiler will run for 10 minutes (or a configured number of minutes),
+ # after which it will provide a series of recommendations. 
+ #
+-# It will try to find init scripts for any programs that it recommends for 
+-# stopping, and it will ask if you want to place links to those scripts in 
++# It will try to find systemd services for any programs that it recommends for 
++# stopping, and it will ask if you want to place links to those services in 
+ # /etc/laptop-mode/batt-stop, so that laptop mode tools will automatically 
+ # stop those daemons when battery mode is detected.
+ #
+@@ -31,7 +31,7 @@
+ ACTIVITY_INTERVAL_MAX=150
+ ACTIVITY_INTERVAL_MIN=5
+ RECOMMEND_DEFAULT_SERVICES=1
+-DEFAULT_SERVICES="anacron cron atd"
++DEFAULT_SERVICES="crond.service atd.service"
+ DEF_IGNORE_PROGRAMS="pdflush journald flush- XFree86 acpid apmd lm-profiler dmesg syslogd awk sed grep mc bc xfs cat diff uniq vi mv sort sleep"
+ IGNORE_PROGRAMS="$DEF_IGNORE_PROGRAMS"
+ RECOMMEND_NETWORK_SERVICES=1
+@@ -159,27 +159,6 @@
+ 	fi
+ }
+ 
+-# Attempt to find an init script for ithe process given as an argument
+-findinit(){
+-	INITDIR=
+-	if [ -d /etc/init.d ] ; then
+-		INITDIR=/etc/init.d
+-	elif [ -d /etc/rc.d/init.d ] ; then
+-		INITDIR=/etc/rc.d/init.d
+-	fi
+-	if [ "$INITDIR" != "" ] ; then
+-		INIT=`ls $INITDIR/ |grep ^$1$ |head -n 1`
+-		if [ -z "$INIT" ]; then
+-			INIT=`grep $1 $INITDIR/* |sed s/:.*// |head -n 1`
+-		else
+-			INIT="$INITDIR/$INIT"
+-		fi
+-		if [ ! -z "$INIT" ] && [ -x $INIT ]; then
+-			echo "$INIT"
+-		fi
+-	fi
+-}
+-
+ # Look for names of running network services
+ profilenet(){
+ 	netstat -anp |grep ^tcp.*LISTEN |grep -v "Program name" |awk -v FS="/" '{print $2}' |sort |uniq |\
+@@ -224,19 +203,20 @@
+ if [ "$RECOMMEND_DEFAULT_SERVICES" -ne 0 ] ; then
+ 	for SERVICE in $DEFAULT_SERVICES ; do
+ 		echo
+-		echo "Program:     \"$SERVICE\""
++		echo "Service:     \"$SERVICE\""
+ 		echo "Reason:      standard recommendation (program may not be running)"
+-		INIT=`findinit $SERVICE`
+-		if [ "$INIT" = "" ] ; then
+-			echo "Init script: none"
++		if [ -f /usr/lib/systemd/system/$SERVICE ]; then
++			SYSTEMD_SERVICE=$SERVICE
++		fi
++		if [ "$SYSTEMD_SERVICE" = "" ] ; then
++			echo "systemd service: not found"
+ 			echo "If you want to disable this program, you should do so manually."
+ 		else
+-			echo "Init script: $INIT (GUESSED)"
+ 			echo
+ 			echo -n "Do you want to disable this service in battery mode? [y/N]: "
+ 			read ANSWER
+ 			if ( echo "$ANSWER" | grep -i ^y > /dev/null ) ; then
+-				ln -fs $INIT /etc/laptop-mode/batt-stop/`echo $INIT | sed 's/.*\///g'`
++				ln -fs /usr/lib/systemd/system/$SERVICE /etc/laptop-mode/batt-stop/
+ 			fi
+ 		fi
+ 		ALREADY_SEEN="$ALREADY_SEEN $SERVICE"
+@@ -252,20 +232,22 @@
+ 			echo
+ 			echo "Program:     \"$SERVICE\""
+ 			echo "Reason:      listens on network, may not be needed offline."
+-			INIT=`findinit $SERVICE`
+-			if [ "$INIT" = "" ] ; then
+-				echo "Init script: none"
++			if [ -f /usr/lib/systemd/system/$SERVICE.service ]; then
++				SYSTEMD_SERVICE=$SERVICE.service
++			fi
++			if [ "$SYSTEMD_SERVICE" = "" ] ; then
++				echo "systemd service: not found"
+ 				echo "If you want to disable this program, you should do so manually."
+ 			else
+-				echo "Init script: $INIT (GUESSED)"
++				echo "systemd service: $SYSTEMD_SERVICE (GUESSED)"
+ 				echo
+ 				echo -n "Do you want to disable this service in battery mode? [y/N]: "
+ 				read ANSWER
+ 				if ( echo "$ANSWER" | grep -i ^y > /dev/null ) ; then
+-					ln -fs $INIT /etc/laptop-mode/batt-stop/`echo $INIT | sed 's/.*\///g'`
++					ln -fs /usr/lib/systemd/system/$SYSTEMD_SERVICE /etc/laptop-mode/batt-stop/
+ 				fi
+ 			fi
+-			ALREADY_SEEN="$ALREADY_SEEN $SERVICE"
++			ALREADY_SEEN="$ALREADY_SEEN $SYSTEMD_SERVICE"
+ 		fi
+ 	done
+ fi
+@@ -281,22 +263,22 @@
+ 						echo
+ 						echo "Program:     \"$SERVICE\""
+ 						echo "Reason:      disk access."
+-						INIT=`findinit $SERVICE`
+-						if [ "$INIT" = "" ] ; then
+-							echo "Init script: none"
++						if [ -f /usr/lib/systemd/system/$SERVICE.service ]; then
++							SYSTEMD_SERVICE=$SERVICE.service
++						fi
++						if [ "$SYSTEMD_SERVICE" = "" ] ; then
++							echo "systemd service: not found"
+ 							echo "If you want to disable this program, you should do so manually."
+ 						else
+-							echo "Init script: $INIT (GUESSED)"
++							echo "systemd service: $SYSTEMD_SERVICE (GUESSED)"
+ 							echo
+ 							echo -n "Do you want to disable this service in battery mode? [y/N]: "
+ 						fi
+ 						read ANSWER
+ 						if ( echo "$ANSWER" | grep -i ^y > /dev/null ) ; then
+-							if [ -e $INIT ] ; then
+-								ln -fs $INIT /etc/laptop-mode/batt-stop/`echo $INIT | sed 's/.*\///g'`
+-							fi
++							ln -fs /usr/lib/systemd/system/$SYSTEMD_SERVICE /etc/laptop-mode/batt-stop/
+ 						fi
+-						ALREADY_SEEN="$ALREADY_SEEN $SERVICE"
++						ALREADY_SEEN="$ALREADY_SEEN $SYSTEMD_SERVICE"
+ 					fi
+ 				fi
+ 				CUR_COMPARE_SECONDS=$(($CUR_COMPARE_SECONDS - 1))
+diff -Nru laptop-mode-tools_1.61.orig/usr/share/laptop-mode-tools/modules/configuration-file-control laptop-mode-tools_1.61/usr/share/laptop-mode-tools/modules/configuration-file-control
+--- laptop-mode-tools_1.61.orig/usr/share/laptop-mode-tools/modules/configuration-file-control	2012-09-06 13:38:13.215845105 -0400
++++ laptop-mode-tools_1.61/usr/share/laptop-mode-tools/modules/configuration-file-control	2012-09-06 15:30:15.661549803 -0400
+@@ -71,43 +71,9 @@
+ 
+ 
+ 	if [ ! -z "$CONFIG_FILE_RELOAD_SERVICES" ] ; then
+-		# Determine how we can start/restart services.
+-		if ( which invoke-rc.d > /dev/null ) ; then
+-			# Debian uses invoke-rc.d
+-			RCPROG="invoke-rc.d "
+-			INITSCRIPT=laptop-mode
+-		elif ( which service > /dev/null ) ; then
+-			# RedHat uses service
+-			RCPROG="service "
+-			INITSCRIPT=laptop-mode
+-		else
+-			# Any other -- we start the init script it ourselves.
+-
+-			# Try non-link directories first, then try links. This helps if one of
+-			# the locations is linked to another, which is the case on some distros.
+-			if [ -d /etc/rc.d/init.d -a ! -L /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d/init.d
+-			elif [ -d /etc/rc.d -a ! -L /etc/rc.d -a ! -d /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d
+-			elif [ -d /etc/init.d -a ! -L /etc/init.d ] ; then
+-				INIT_D=/etc/init.d
+-			elif [ -d /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d/init.d
+-			elif [ -d /etc/rc.d ] ; then
+-				INIT_D=/etc/rc.d
+-			elif [ -d /etc/init.d ] ; then
+-				INIT_D=/etc/init.d
+-			else
+-				log "VERBOSE" "Cannot determine location of init scripts."
+-				exit 1
+-			fi
+-
+-			RCPROG="$INIT_D/"
+-		fi
+-
+ 		for SERVICE in $CONFIG_FILE_RELOAD_SERVICES ; do
+ 			log "VERBOSE" "Reloading service $SERVICE."
+-			$RCPROG$SERVICE reload
++			systemctl reload-or-try-restart $SERVICE
+ 		done
+ 	fi
+ fi
+diff -Nru laptop-mode-tools_1.61.orig/usr/share/laptop-mode-tools/modules/start-stop-programs laptop-mode-tools_1.61/usr/share/laptop-mode-tools/modules/start-stop-programs
+--- laptop-mode-tools_1.61.orig/usr/share/laptop-mode-tools/modules/start-stop-programs	2012-09-06 13:38:13.216845103 -0400
++++ laptop-mode-tools_1.61/usr/share/laptop-mode-tools/modules/start-stop-programs	2012-09-06 14:19:28.578166920 -0400
+@@ -9,8 +9,8 @@
+    #
+    if [ -f /var/run/laptop-mode-tools/start-stop-undo-actions ] ; then
+ 	cat /var/run/laptop-mode-tools/start-stop-undo-actions | \
+-		while read SCRIPT STARTSTOPACTION ; do
+-			$SCRIPT $STARTSTOPACTION
++		while read SERVICE STARTSTOPACTION ; do
++			systemctl $STARTSTOPACTION $SERVICE
+ 		done
+    fi
+ 
+@@ -44,27 +44,24 @@
+ 	START_DIR="$START_STOP_DIR_PREFIX"-start
+ 	STOP_DIR="$START_STOP_DIR_PREFIX"-stop
+ 	if [ -d "$STOP_DIR" ] ; then
+-		for SCRIPT in "$STOP_DIR"/* ; do
+-			if [ -e "$SCRIPT" ] ; then
+-				log "VERBOSE" "Stopping $SCRIPT"
+-				"$SCRIPT" stop
+-				# Dereference any links. When people configure
+-				# the directories with links and then they remove
+-				# links while laptop mode is active, the "undo"
+-				# will fail if we don't dereference the links
+-				# before storing them.
+-				LINKTARGET=`readlink -f "$SCRIPT"`
+-				sed -i "1i $LINKTARGET start" /var/run/laptop-mode-tools/start-stop-undo-actions
++		for SERVICE in "$STOP_DIR"/* ; do
++			if [ -e "$SERVICE" ] ; then
++				log "VERBOSE" "Stopping $SERVICE"
++				SERVICE=$(readlink -f "$SERVICE")
++				SERVICE=$(basename "$SERVICE")
++				systemctl stop "$SERVICE"
++				sed -i "1i $SERVICE start" /var/run/laptop-mode-tools/start-stop-undo-actions
+ 			fi
+ 		done
+ 	fi
+ 	if [ -d "$START_DIR" ] ; then
+-		for SCRIPT in "$START_DIR"/* ; do
+-			if [ -e "$SCRIPT" ] ; then
+-				log "VERBOSE" "Starting $SCRIPT"
+-				"$SCRIPT" start
+-				LINKTARGET=`readlink -f "$SCRIPT"`
+-				sed -i "1i $LINKTARGET stop" /var/run/laptop-mode-tools/start-stop-undo-actions
++		for SERVICE in "$START_DIR"/* ; do
++			if [ -e "$SERVICE" ] ; then
++				log "VERBOSE" "Starting $SERVICE"
++				SERVICE=$(readlink -f "$SERVICE")
++				SERVICE=$(basename "$SERVICE")
++				systemctl start "$SERVICE"
++				sed -i "1i $SERVICE stop" /var/run/laptop-mode-tools/start-stop-undo-actions
+ 			fi
+ 		done
+ 	fi
+@@ -75,49 +72,15 @@
+ 	if [ "$START_SERVICES" != "" -o "$STOP_SERVICES" != "" ] ; then
+ 		log "MSG" "Starting/stopping services"
+ 	
+-		# Determine how we can start/restart services.
+-		if ( which invoke-rc.d > /dev/null ) ; then
+-			# Debian uses invoke-rc.d
+-			RCPROG="invoke-rc.d "
+-			INITSCRIPT=laptop-mode
+-		elif ( which service > /dev/null ) ; then
+-			# RedHat uses service
+-			RCPROG="service "
+-			INITSCRIPT=laptop-mode
+-		else
+-			# Any other -- we start the init script it ourselves.
+-
+-			# Try non-link directories first, then try links. This helps if one of
+-			# the locations is linked to another, which is the case on some distros.
+-			if [ -d /etc/rc.d/init.d -a ! -L /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d/init.d
+-			elif [ -d /etc/rc.d -a ! -L /etc/rc.d -a ! -d /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d
+-			elif [ -d /etc/init.d -a ! -L /etc/init.d ] ; then
+-				INIT_D=/etc/init.d
+-			elif [ -d /etc/rc.d/init.d ] ; then
+-				INIT_D=/etc/rc.d/init.d
+-			elif [ -d /etc/rc.d ] ; then
+-				INIT_D=/etc/rc.d
+-			elif [ -d /etc/init.d ] ; then
+-				INIT_D=/etc/init.d
+-			else
+-				log "ERR" "Cannot determine location of init scripts."
+-				exit 1
+-			fi
+-
+-			RCPROG="$INIT_D/"
+-		fi
+-
+ 		for SERVICE in $STOP_SERVICES ; do
+ 			log "VERBOSE" "Stopping service $SERVICE."
+-			$RCPROG$SERVICE stop
+-			sed -i "1i $RCPROG$SERVICE start" /var/run/laptop-mode-tools/start-stop-undo-actions
++			systemctl stop $SERVICE
++			sed -i "1i $SERVICE start" /var/run/laptop-mode-tools/start-stop-undo-actions
+ 		done
+ 		for SERVICE in $START_SERVICES ; do
+ 			log "VERBOSE" "Starting service $SERVICE."
+-			$RCPROG$SERVICE start
+-			sed -i "1i $RCPROG$SERVICE stop" /var/run/laptop-mode-tools/start-stop-undo-actions
++			systemctl start $SERVICE
++			sed -i "1i $SERVICE stop" /var/run/laptop-mode-tools/start-stop-undo-actions
+ 		done
+ 	fi
+    fi

@@ -6,15 +6,15 @@
 
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
-Version:         295.49
-Release:         2%{?dist}
+Version:         304.51
+Release:         100%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
 Group:           User Interface/X Hardware Support
 License:         Redistributable, no modification permitted
 URL:             http://www.nvidia.com/
 Source0:         ftp://download.nvidia.com/XFree86/Linux-x86/%{version}/NVIDIA-Linux-x86-%{version}.run
-Source1:         ftp://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}.run
+Source1:         ftp://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
 Source2:         00-nvidia.conf
 Source6:         blacklist-nouveau.conf
 Source11:        nvidia-README.Fedora
@@ -99,6 +99,9 @@ GeForce5 and below are NOT supported by this release.
 For the full product support list, please consult the release notes
 for driver version %{version}.
 
+Please use the following documentation:
+http://rpmfusion.org/Howto/nVidia
+
 
 %package devel
 Summary:         Development files for %{name}
@@ -120,7 +123,7 @@ such as OpenGL headers.
 Summary:         Libraries for %{name}
 Group:           User Interface/X Hardware Support
 Requires:        %{name} = %{?epoch}:%{version}-%{release}
-Requires:        libvdpau%{_isa} >= 0.4
+Requires:        libvdpau%{_isa} >= 0.5
 Provides:        %{name}-libs-%{_target_cpu} = %{?epoch}:%{version}-%{release}
 %ifarch %{ix86}
 Provides:        %{name}-libs-32bit = %{?epoch}:%{version}-%{release}
@@ -201,7 +204,11 @@ install -p -m 0755 libvdpau*.so.%{version}     $RPM_BUILD_ROOT%{_libdir}/vdpau/
 install -p -m 0644 libXvMCNVIDIA.a             $RPM_BUILD_ROOT%{nvidialibdir}/
 
 # Install binaries
-install -p -m 0755 nvidia-{bug-report.sh,smi} $RPM_BUILD_ROOT%{_bindir}
+install -p -m 0755 nvidia-{bug-report.sh,smi,cuda-proxy-control,cuda-proxy-server} $RPM_BUILD_ROOT%{_bindir}
+
+# Install headers
+install -m 0755 -d $RPM_BUILD_ROOT%{_includedir}/nvidia/GL/
+install -p -m 0644 {gl.h,glext.h,glx.h,glxext.h} $RPM_BUILD_ROOT%{_includedir}/nvidia/GL/
 
 # Install man pages
 install    -m 0755 -d   $RPM_BUILD_ROOT%{_mandir}/man1/
@@ -272,11 +279,14 @@ if [ "$1" -eq "1" ]; then
       ISGRUB1="--grub"
   fi
   if [ -x /sbin/grubby ] ; then
-    GRUBBYLASTKERNEL=`/sbin/grubby --default-kernel`
-    /sbin/grubby $ISGRUB1 \
-      --update-kernel=${GRUBBYLASTKERNEL} \
-      --args='nouveau.modeset=0 rd.driver.blacklist=nouveau' \
-       &>/dev/null
+    KERNELS=`/sbin/grubby --default-kernel`
+    [ -z $KERNELS ] && KERNELS=`ls /boot/vmlinuz-*%{?dist}.$(uname -m)*`
+    for kernel in ${KERNELS} ; do
+      /sbin/grubby $ISGRUB1 \
+        --update-kernel=${kernel} \
+        --args='nouveau.modeset=0 rd.driver.blacklist=nouveau video=vesa:off vga=normal' \
+         &>/dev/null
+    done
   fi
 fi || :
 
@@ -311,7 +321,7 @@ if [ "$1" -eq "0" ]; then
     for kernel in ${KERNELS} ; do
       /sbin/grubby $ISGRUB1 \
         --update-kernel=${kernel} \
-        --remove-args='nouveau.modeset=0 rdblacklist=nouveau rd.driver.blacklist=nouveau nomodeset' &>/dev/null
+        --remove-args='nouveau.modeset=0 rdblacklist=nouveau rd.driver.blacklist=nouveau nomodeset video=vesa:off' &>/dev/null
     done
   fi
   #Backup and disable previously used xorg.conf
@@ -350,6 +360,8 @@ fi ||:
 #{_initrddir}/nvidia
 %{_bindir}/nvidia-bug-report.sh
 %{_bindir}/nvidia-smi
+%{_bindir}/nvidia-cuda-proxy-control
+%{_bindir}/nvidia-cuda-proxy-server
 #{_sbindir}/nvidia-config-display
 # Xorg libs that do not need to be multilib
 %dir %{_libdir}/xorg/modules/extensions/nvidia
@@ -358,6 +370,7 @@ fi ||:
 #/no_multilib
 %{_datadir}/pixmaps/*.png
 %{_mandir}/man1/nvidia-smi.*
+%{_mandir}/man1/nvidia-cuda-proxy-control.1.*
 
 # For update-alternatives
 %ghost %{_sysconfdir}/X11/xorg.conf.d/00-gfx.conf
@@ -383,15 +396,62 @@ fi ||:
 %defattr(-,root,root,-)
 %exclude %{nvidialibdir}/libXvMCNVIDIA.a
 %exclude %{nvidialibdir}/libcuda.so
+%{_includedir}/nvidia/
 %{nvidialibdir}/libOpenCL.so
 %{nvidialibdir}/libnvidia-compiler.so
 %{nvidialibdir}/libGL.so
 %{nvidialibdir}/libXvMCNVIDIA.so
 %{nvidialibdir}/libnvcuvid.so
 %{nvidialibdir}/libnvidia-ml.so
+%{nvidialibdir}/libnvidia-opencl.so
 
 
 %changelog
+* Tue Oct 09 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:304.51-100
+- Merge RPMFusion changes
+
+* Mon Sep 24 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.51-1
+- Update to 304.51
+
+* Sat Sep 15 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.48-1
+- Update to 304.48
+
+* Sat Sep 15 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.43-2
+- Add missing headers to -devel - rfbz#2475
+
+* Wed Sep 05 2012 Nicolas Chauvet <kwizart@gmail.com> - 1:304.43-1
+- Update to 304.43
+- Force libvdpau >= 0.5 - rhbz#849486
+- Workaround grub2 fb initialization at install time - rfbz#2391
+- Reference our own documentation of the driver.
+
+* Tue Aug 14 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.37-1
+- Update to 304.37 release
+
+* Sat Aug 04 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.32-1
+- Update to 304.32
+
+* Tue Jul 31 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.30-1
+- Update to 304.30
+
+* Sat Jul 14 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.22-2
+- Add nvidia-cuda-proxy binaries and man file
+
+* Fri Jul 13 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.22-1
+- Update to 304.22
+
+* Sat Jun 16 2012 leigh scott <leigh123linux@googlemail.com> - 1:302.17-1
+- Update to 302.17
+
+* Tue May 22 2012 leigh scott <leigh123linux@googlemail.com> - 1:302.11-1
+- Update to 302.11
+
+* Tue May 22 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.53-1
+- Update to 295.53
+
+* Sun May 20 2012 Nicolas Chauvet <kwizart@gmail.com> - 1:295.49-2
+- Fix %%post when grubby --default-kernel is broken
+
 * Fri May 04 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:295.49-2
 - Modified to allow hybrid graphics support by installing hybrid-detect package
 
@@ -401,7 +461,7 @@ fi ||:
 * Wed Apr 11 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.40-1
 - Update to 295.40
 
-* Thu Mar 22 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.33-3
+* Thu Mar 22 2012 leigh scott <leigh123linux@googlemail.com> - 1:295.33-1
 - Update to 295.33
 
 * Tue Feb 14 2012 Nicolas Chauvet <kwizart@gmail.com> - 1:295.20-1

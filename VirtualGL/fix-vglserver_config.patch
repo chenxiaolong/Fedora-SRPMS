@@ -20,17 +20,17 @@
   * /etc/opt/VirtualGL/ -> /etc/VirtualGL/
   * /etc/kde4/ -> /etc/kde/
 - Do not add vglusers group. This is handled in the %post scriptlet
-diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_config
---- VirtualGL-2.3.orig/rr/vglserver_config	2012-02-25 00:12:07.914553456 -0500
-+++ VirtualGL-2.3/rr/vglserver_config	2012-02-26 14:22:26.034754073 -0500
+diff -Nru VirtualGL-2.3.2.orig/server/vglserver_config VirtualGL-2.3.2/server/vglserver_config
+--- VirtualGL-2.3.2.orig/server/vglserver_config	2012-10-12 15:38:39.797410145 -0400
++++ VirtualGL-2.3.2/server/vglserver_config	2012-10-12 17:57:45.800098963 -0400
 @@ -1,4 +1,4 @@
 -#!/bin/sh
 +#!/bin/bash
  
  # Copyright (C)2007 Sun Microsystems, Inc.
- # Copyright (C)2009-2011 D. R. Commander
-@@ -179,53 +179,23 @@
- }
+ # Copyright (C)2009-2012 D. R. Commander
+@@ -215,54 +215,25 @@
+ }	
  
  disablextest() {
 -	if [ -z "$1" ]; then
@@ -41,13 +41,14 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -	echo ... Disabling XTEST extension in $1 ...
 +	backup /etc/X11/xorg.conf.d/00-disable-xtest.conf
 +	echo ... Disabling XTEST extension ...
++
  	TMPFILE=`maketemp vglserver_config_7`
 -	sed -e "/\/X11\/X\>/s/[ #\t]*-tst//g" -e "/\/bin\/X\>/s/[ #\t]*-tst//g" -e "/\/bin\/Xorg\>/s/[ #\t]*-tst//g" -e "/\/bin\/Xsun\>/s/[ #\t]*-tst//g" -e "/\/bin\/Xserver\>/s/[ #\t]*-tst//g" $1 >$TMPFILE && cp $TMPFILE $1 && (
 -		sed -e "/\/X11\/X\>/s/$/\ -tst/g" -e "/\/bin\/X\>/s/$/\ -tst/g" -e "/\/bin\/Xorg\>/s/$/\ -tst/g" -e "/\/bin\/Xsun\>/s/$/\ -tst/g" -e "/\/bin\/Xserver\>/s/$/\ -tst/g" $1 >$TMPFILE && cp $TMPFILE $1
 -	)
 -	if [ -f $TMPFILE ]; then rm $TMPFILE; fi
 -}
--
+ 
 -disablextestkdm() {
 -	if [ -z "$1" ]; then
 -		echo USAGE: disablextestkdm {filename}
@@ -56,6 +57,7 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -	backup $1
 -	echo ... Disabling XTEST extension in $1 ...
 -	TMPFILE=`maketemp vglserver_config_12`
+-	uncommentline $1 ServerArgsLocal
 -	sed -e "/ServerArgsLocal\>/s/[ #\t]*-tst//g" $1 >$TMPFILE && cp $TMPFILE $1 && (
 -		sed -e "/ServerArgsLocal\>/s/$/\ -tst/g" $1 >$TMPFILE && cp $TMPFILE $1
 -	)
@@ -95,7 +97,7 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
  }
  
  disallowgdmtcp() {
-@@ -261,118 +231,73 @@
+@@ -298,118 +269,73 @@
  }
  
  unconfigdev() {
@@ -159,7 +161,15 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -			echo ... Granting write permission to /dev/fbs/\* for vglusers group ...
 -			chmod 660 /dev/fbs/*
 -			chown root:vglusers /dev/fbs/*
--		else
++	if [ -f /etc/security/console.perms ]; then
++		echo ... Modifying /etc/security/console.perms to disable automatic permissions
++		echo "    for DRI devices ..."
++		commentline /etc/security/console.perms "\<dri\>"
++	fi
++	if [ -d /etc/modprobe.d ]; then
++		if [ -f /etc/modprobe.d/nvidia.conf ]; then
++			echo ... Modifying /etc/modprobe.d/nvidia.conf to set requested permissions for
+ 		else
 -			echo ... Granting write permission to /dev/fbs/\* for all users ...
 -			chmod 666 /dev/fbs/*
 -			chown root:root /dev/fbs/*
@@ -183,15 +193,6 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -		if [ -d /etc/modprobe.d ]; then
 -			if [ -f /etc/modprobe.d/nvidia ]; then
 -				echo ... Modifying /etc/modprobe.d/nvidia to set requested permissions for
-+	if [ -f /etc/security/console.perms ]; then
-+		echo ... Modifying /etc/security/console.perms to disable automatic permissions
-+		echo "    for DRI devices ..."
-+		commentline /etc/security/console.perms "\<dri\>"
-+	fi
-+	if [ -d /etc/modprobe.d ]; then
-+		if [ -f /etc/modprobe.d/nvidia.conf ]; then
-+			echo ... Modifying /etc/modprobe.d/nvidia.conf to set requested permissions for
-+		else
 +			echo ... Creating /etc/modprobe.d/virtualgl.conf to set requested permissions for
 +		fi
 +		echo "    /dev/nvidia* ..."
@@ -269,7 +270,7 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
  }
  
  ynprompt() {
-@@ -395,9 +320,9 @@
+@@ -432,9 +358,9 @@
  
  unconfigglx() {
  	echo ... Removing /etc/opt/VirtualGL directory ...
@@ -282,7 +283,7 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
  	fi
  
  	if [ -f /etc/X11/xdm/Xsetup_0 -a ! -h /etc/X11/xdm/Xsetup_0 ]; then
-@@ -407,86 +332,15 @@
+@@ -444,24 +370,9 @@
  			delvglgenkey /etc/X11/xdm/Xsetup
  		fi
  	fi
@@ -298,16 +299,18 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -	if [ -f /etc/X11/gdm/SunRayInit/Default ]; then
 -		delvglgenkey /etc/X11/gdm/SunRayInit/Default
 -	fi
- 	if [ -f /etc/gdm/Init/Default -a ! -h /etc/gdm/Init/Default ]; then
- 		delvglgenkey /etc/gdm/Init/Default
- 	fi
--	if [ -f /etc/opt/gnome/gdm/Init/Default -a ! -h /etc/opt/gnome/gdm/Init/Default ]; then
--		delvglgenkey /etc/opt/gnome/gdm/Init/Default
--	fi
--	if [ -f /etc/kde4/kdm/Xsetup -a ! -h /etc/kde4/kdm/Xsetup ]; then
--		delvglgenkey /etc/kde4/kdm/Xsetup
-+	if [ -f /etc/kde/kdm/Xsetup -a ! -h /etc/kde/kdm/Xsetup ]; then
-+		delvglgenkey /etc/kde/kdm/Xsetup
+ 	for file in /etc/gdm/Init/Default \
+-		/usr/local/etc/gdm/Init/Default \
+-		/etc/opt/gnome/gdm/Init/Default \
+-		/etc/kde4/kdm/Xsetup \
++		/etc/kde/kdm/Xsetup \
+ 		/usr/share/config/kdm/Xsetup \
+-		/usr/local/kde4/share/config/kdm/Xsetup; do
+ 		if [ -f $file -a ! -h $file ]; then
+ 			delvglgenkey $file
+ 		fi
+@@ -471,66 +382,10 @@
+ 		removeline /etc/lightdm/lightdm.conf display-setup-script
  	fi
  
 -	if [ "$UNAME_S" = "SunOS" ]; then
@@ -325,37 +328,31 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -			commentline /etc/dt/config/Xconfig.SUNWut.prototype Dtlogin\\*grabServer
 -		fi
 -	fi
--
--	if [ -f /etc/X11/xdm/Xservers -a ! -h /etc/X11/xdm/Xservers ]; then
--		enablextest /etc/X11/xdm/Xservers
--	fi
--	if [ -f /etc/X11/gdm/gdm.conf -a ! -h /etc/X11/gdm/gdm.conf ]; then
--		enablextest /etc/X11/gdm/gdm.conf
--	fi
--	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
--		enablextest /etc/gdm/custom.conf
--	fi
--	if [ -f /etc/gdm/gdm.conf -a ! -h /etc/gdm/gdm.conf ]; then
--		enablextest /etc/gdm/gdm.conf
--	fi
++	enablextest
+ 
+-	for file in /etc/X11/xdm/Xservers \
+-		/etc/X11/gdm/gdm.conf \
+-		/etc/gdm/custom.conf \
+-		/usr/local/etc/gdm/custom.conf \
+-		/etc/gdm/gdm.conf \
+-		/etc/X11/gdm/custom.conf \
+-		/etc/opt/gnome/gdm/gdm.conf \
+-		/etc/opt/kde3/share/config/kdm/Xservers; do
+-		if [ -f $file -a ! -h $file ]; then
+-			enablextest $file
+-		fi
+-	done
 -	if [ -f /etc/gdm/gdm-cdd.conf ]; then
 -		enablextest /etc/gdm/gdm-cdd.conf
 -	fi
--	if [ -f /etc/X11/gdm/custom.conf -a ! -h /etc/X11/gdm/custom.conf ]; then
--		enablextest /etc/X11/gdm/custom.conf
--	fi
--	if [ -f /etc/opt/gnome/gdm/gdm.conf -a ! -h /etc/opt/gnome/gdm/gdm.conf ]; then
--		enablextest /etc/opt/gnome/gdm/gdm.conf
--	fi
--	if [ -f /etc/opt/kde3/share/config/kdm/Xservers -a ! -h /etc/opt/kde3/share/config/kdm/Xservers ]; then
--		enablextest /etc/opt/kde3/share/config/kdm/Xservers
--	fi
--	if [ -f /etc/kde4/kdm/kdmrc -a ! -h /etc/kde4/kdm/kdmrc ]; then
--		enablextestkdm /etc/kde4/kdm/kdmrc
--	fi
--	if [ -f /etc/kde/kdm/kdmrc -a ! -h /etc/kde/kdm/kdmrc ]; then
--		enablextestkdm /etc/kde/kdm/kdmrc
--	fi
+-	for file in /etc/kde4/kdm/kdmrc \
+-		/etc/kde/kdm/kdmrc \
+-		/usr/share/config/kdm/kdmrc \
+-		/usr/local/kde4/share/config/kdm/kdmrc; do
+-		if [ -f $file -a ! -h $file ]; then
+-			enablextestkdm $file
+-		fi
+-	done
 -	if [ "$UNAME_S" = "SunOS" ]; then
 -		if [ -f /etc/dt/config/Xservers ]; then
 -			enablextest /etc/dt/config/Xservers
@@ -364,28 +361,25 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -			/usr/sbin/svccfg -s application/x11/x11-server delpropvalue options/server_args "*-tst*" 2>&1 >/dev/null
 -		fi
 -	fi
-+	enablextest
- 
--	if [ -f /etc/X11/gdm/gdm.conf -a ! -h /etc/X11/gdm/gdm.conf ]; then
--		disallowgdmtcp /etc/X11/gdm/gdm.conf
--	fi
- 	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
- 		disallowgdmtcp /etc/gdm/custom.conf
+-
+-	for file in /etc/X11/gdm/gdm.conf \
+-		/etc/gdm/custom.conf \
+-		/usr/local/etc/gdm/custom.conf \
+-		/etc/gdm/gdm.conf \
+-		/etc/X11/gdm/custom.conf \
+-		/etc/opt/gnome/gdm/gdm.conf; do
+-		if [ -f $file -a ! -h $file ]; then
+-			disallowgdmtcp $file
+-		fi
+-	done
+-	if [ -f /etc/gdm/gdm-cdd.conf ]; then
+-		disallowgdmtcp /etc/gdm/gdm-cdd.conf
++	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
++		disallowgdmtcp /etc/gdm/custom.conf
  	fi
-@@ -496,12 +350,6 @@
- 	if [ -f /etc/gdm/gdm-cdd.conf ]; then
- 		disallowgdmtcp /etc/gdm/gdm-cdd.conf
- 	fi
--	if [ -f /etc/X11/gdm/custom.conf -a ! -h /etc/X11/gdm/custom.conf ]; then
--		disallowgdmtcp /etc/X11/gdm/custom.conf
--	fi
--	if [ -f /etc/opt/gnome/gdm/gdm.conf -a ! -h /etc/opt/gnome/gdm/gdm.conf ]; then
--		disallowgdmtcp /etc/opt/gnome/gdm/gdm.conf
--	fi
  
  	unconfigdev
- 
-@@ -529,20 +377,13 @@
+@@ -559,20 +414,13 @@
  	fi
  
  	if [ "$VGLUSERSONLY" = "1" ]; then
@@ -413,7 +407,7 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
  	fi
  
  	configdev
-@@ -554,172 +395,19 @@
+@@ -584,24 +432,9 @@
  			addvglgenkey /etc/X11/xdm/Xsetup
  		fi
  	fi
@@ -429,25 +423,28 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -	if [ -f /etc/X11/gdm/SunRayInit/Default ]; then
 -		addvglgenkey /etc/X11/gdm/SunRayInit/Default
 -	fi
- 	if [ -f /etc/gdm/Init/Default -a ! -h /etc/gdm/Init/Default ]; then
- 		addvglgenkey /etc/gdm/Init/Default
+ 	for file in /etc/gdm/Init/Default \
+-		/usr/local/etc/gdm/Init/Default \
+-		/etc/opt/gnome/gdm/Init/Default \
+-		/etc/kde4/kdm/Xsetup \
+-		/usr/share/config/kdm/Xsetup \
+-		/usr/local/kde4/share/config/kdm/Xsetup; do
++		/etc/kde/kdm/Xsetup \
++		/usr/share/config/kdm/Xsetup; do
+ 		if [ -f $file -a ! -h $file ]; then
+ 			addvglgenkey $file
+ 		fi
+@@ -610,124 +443,15 @@
+ 		addvglgenkey_lightdm /etc/lightdm/lightdm.conf
  	fi
--	if [ -f /etc/opt/gnome/gdm/Init/Default -a ! -h /etc/opt/gnome/gdm/Init/Default ]; then
--		addvglgenkey /etc/opt/gnome/gdm/Init/Default
--	fi
--	if [ -f /etc/kde4/kdm/Xsetup -a ! -h /etc/kde4/kdm/Xsetup ]; then
--		addvglgenkey /etc/kde4/kdm/Xsetup
-+	if [ -f /etc/kde/kdm/Xsetup -a ! -h /etc/kde/kdm/Xsetup ]; then
-+		addvglgenkey /etc/kde/kdm/Xsetup
- 	fi
- 		
+ 
 -	if [ "$UNAME_S" = "SunOS" ]; then
 -		if [ ! -d /etc/dt/config ]; then
 -			echo ... Creating /etc/dt/config/ directory ...
 -			mkdir -p /etc/dt/config
 -			chmod 755 /etc/dt/config
 -		fi
--
+ 
 -		if [ ! -f /etc/dt/config/Xsetup ]; then
 -			if [ -f /usr/dt/config/Xsetup ]; then
 -				echo ... Copying /usr/dt/config/Xsetup to /etc/dt/config/Xsetup ...
@@ -480,34 +477,22 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -
 -	fi
 -
--	if [ -f /etc/X11/xdm/Xservers -a ! -h /etc/X11/xdm/Xservers ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/X11/xdm/Xservers
--		else
--			enablextest /etc/X11/xdm/Xservers
+-	for file in /etc/X11/xdm/Xservers \
+-		/etc/X11/gdm/gdm.conf \
+-		/etc/gdm/custom.conf \
+-		/usr/local/etc/gdm/custom.conf \
+-		/etc/gdm/gdm.conf \
+-		/etc/X11/gdm/custom.conf \
+-		/etc/opt/gnome/gdm/gdm.conf \
+-		/etc/opt/kde3/share/config/kdm/Xservers; do
+-		if [ -f $file -a ! -h $file ]; then
+-			if [ "$DISABLEXTEST" = "1" ]; then
+-				disablextest $file
+-			else
+-				enablextest $file
+-			fi
 -		fi
--	fi
--	if [ -f /etc/X11/gdm/gdm.conf -a ! -h /etc/X11/gdm/gdm.conf ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/X11/gdm/gdm.conf
--		else
--			enablextest /etc/X11/gdm/gdm.conf
--		fi
--	fi
--	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/gdm/custom.conf
--		else
--			enablextest /etc/gdm/custom.conf
--		fi
--	fi
--	if [ -f /etc/gdm/gdm.conf -a ! -h /etc/gdm/gdm.conf ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/gdm/gdm.conf
--		else
--			enablextest /etc/gdm/gdm.conf
--		fi
--	fi
+-	done
 -	if [ -f /etc/gdm/gdm-cdd.conf ]; then
 -		if [ "$DISABLEXTEST" = "1" ]; then
 -			disablextest /etc/gdm/gdm-cdd.conf
@@ -515,41 +500,18 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 -			enablextest /etc/gdm/gdm-cdd.conf
 -		fi
 -	fi
--	if [ -f /etc/X11/gdm/custom.conf -a ! -h /etc/X11/gdm/custom.conf ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/X11/gdm/custom.conf
--		else
--			enablextest /etc/X11/gdm/custom.conf
+-	for file in /etc/kde4/kdm/kdmrc \
+-		/etc/kde/kdm/kdmrc \
+-		/usr/share/config/kdm/kdmrc \
+-		/usr/local/kde4/share/config/kdm/kdmrc; do
+-		if [ -f $file -a ! -h $file ]; then
+-			if [ "$DISABLEXTEST" = "1" ]; then
+-				disablextestkdm $file
+-			else
+-				enablextestkdm $file
+-			fi
 -		fi
--	fi
--	if [ -f /etc/opt/gnome/gdm/gdm.conf -a ! -h /etc/opt/gnome/gdm/gdm.conf ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/opt/gnome/gdm/gdm.conf
--		else
--			enablextest /etc/opt/gnome/gdm/gdm.conf
--		fi
--	fi
--	if [ -f /etc/opt/kde3/share/config/kdm/Xservers -a ! -h /etc/opt/kde3/share/config/kdm/Xservers ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextest /etc/opt/kde3/share/config/kdm/Xservers
--		else
--			enablextest /etc/opt/kde3/share/config/kdm/Xservers
--		fi
--	fi
--	if [ -f /etc/kde4/kdm/kdmrc -a ! -h /etc/kde4/kdm/kdmrc ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextestkdm /etc/kde4/kdm/kdmrc
--		else
--			enablextestkdm /etc/kde4/kdm/kdmrc
--		fi
--	fi
--	if [ -f /etc/kde/kdm/kdmrc -a ! -h /etc/kde/kdm/kdmrc ]; then
--		if [ "$DISABLEXTEST" = "1" ]; then
--			disablextestkdm /etc/kde/kdm/kdmrc
--		else
--			enablextestkdm /etc/kde/kdm/kdmrc
--		fi
--	fi
+-	done
 -	if [ "$UNAME_S" = "SunOS" ]; then
 -		if [ "$DISABLEXTEST" = "1" ]; then
 -			if [ ! -f /etc/dt/config/Xservers ]; then
@@ -586,22 +548,20 @@ diff -Nru VirtualGL-2.3.orig/rr/vglserver_config VirtualGL-2.3/rr/vglserver_conf
 +		enablextest
  	fi
  
--	if [ -f /etc/X11/gdm/gdm.conf -a ! -h /etc/X11/gdm/gdm.conf ]; then
--		disallowgdmtcp /etc/X11/gdm/gdm.conf
--	fi
- 	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
- 		disallowgdmtcp /etc/gdm/custom.conf
+-	for file in /etc/X11/gdm/gdm.conf \
+-		/etc/gdm/custom.conf \
+-		/usr/local/etc/gdm/custom.conf \
+-		/etc/gdm/gdm.conf \
+-		/etc/X11/gdm/custom.conf \
+-		/etc/opt/gnome/gdm/gdm.conf; do
+-		if [ -f $file -a ! -h $file ]; then
+-			disallowgdmtcp $file
+-		fi
+-	done
+-	if [ -f /etc/gdm/gdm-cdd.conf ]; then
+-		disallowgdmtcp /etc/gdm/gdm-cdd.conf
++	if [ -f /etc/gdm/custom.conf -a ! -h /etc/gdm/custom.conf ]; then
++		disallowgdmtcp /etc/gdm/custom.conf
  	fi
-@@ -729,12 +417,6 @@
- 	if [ -f /etc/gdm/gdm-cdd.conf ]; then
- 		disallowgdmtcp /etc/gdm/gdm-cdd.conf
- 	fi
--	if [ -f /etc/X11/gdm/custom.conf -a ! -h /etc/X11/gdm/custom.conf ]; then
--		disallowgdmtcp /etc/X11/gdm/custom.conf
--	fi
--	if [ -f /etc/opt/gnome/gdm/gdm.conf -a ! -h /etc/opt/gnome/gdm/gdm.conf ]; then
--		disallowgdmtcp /etc/opt/gnome/gdm/gdm.conf
--	fi
  
  	echo
- 	echo Done.  You must restart the display manager for the changes to take effect.

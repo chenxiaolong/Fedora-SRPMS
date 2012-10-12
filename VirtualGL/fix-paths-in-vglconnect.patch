@@ -1,7 +1,7 @@
 Change /opt/VirtualGL to /usr
-diff -Nru VirtualGL-2.3.orig/rr/vglconnect VirtualGL-2.3/rr/vglconnect
---- VirtualGL-2.3.orig/rr/vglconnect	2012-02-25 00:12:07.914553456 -0500
-+++ VirtualGL-2.3/rr/vglconnect	2012-02-25 00:19:58.927786500 -0500
+diff -Nru VirtualGL-2.3.orig/client/vglconnect VirtualGL-2.3/client/vglconnect
+--- VirtualGL-2.3.orig/client/vglconnect	2012-02-25 00:12:07.914553456 -0500
++++ VirtualGL-2.3/client/vglconnect	2012-02-25 00:19:58.927786500 -0500
 @@ -44,7 +44,7 @@
  	echo "-g = Use gsissh from Globus Toolkit to make all SSh connections"
  	echo "-force = Force a new vglclient instance (use with caution)"

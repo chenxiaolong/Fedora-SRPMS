@@ -1,6 +1,6 @@
-diff -Nru VirtualGL-2.3.orig/rr/vgllogin VirtualGL-2.3/rr/vgllogin
---- VirtualGL-2.3.orig/rr/vgllogin	2012-02-25 00:12:07.913553458 -0500
-+++ VirtualGL-2.3/rr/vgllogin	2012-02-25 00:24:13.739333971 -0500
+diff -Nru VirtualGL-2.3.orig/server/vgllogin VirtualGL-2.3/server/vgllogin
+--- VirtualGL-2.3.orig/server/vgllogin	2012-02-25 00:12:07.913553458 -0500
++++ VirtualGL-2.3/server/vgllogin	2012-02-25 00:24:13.739333971 -0500
 @@ -37,12 +37,8 @@
  
  	if [ "$2" = "" -o "$3" = "" ]; then usage $0; fi

@@ -1,6 +1,6 @@
-diff -Nru VirtualGL-2.3.orig/rr/vglgenkey VirtualGL-2.3/rr/vglgenkey
---- VirtualGL-2.3.orig/rr/vglgenkey	2012-02-25 00:12:07.913553458 -0500
-+++ VirtualGL-2.3/rr/vglgenkey	2012-02-25 00:23:01.450462350 -0500
+diff -Nru VirtualGL-2.3.orig/server/vglgenkey VirtualGL-2.3/server/vglgenkey
+--- VirtualGL-2.3.orig/server/vglgenkey	2012-02-25 00:12:07.913553458 -0500
++++ VirtualGL-2.3/server/vglgenkey	2012-02-25 00:23:01.450462350 -0500
 @@ -1,17 +1,14 @@
  #!/bin/sh
  XAUTH=xauth

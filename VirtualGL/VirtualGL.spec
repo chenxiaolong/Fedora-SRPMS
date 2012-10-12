@@ -1,6 +1,6 @@
 Name:		VirtualGL
-Version:	2.3
-Release:	6%{?dist}
+Version:	2.3.2
+Release:	1%{?dist}
 Summary:	A toolkit for displaying OpenGL applications to thin clients
 
 Group:		User Interface/X
@@ -97,16 +97,11 @@ make %{?_smp_mflags}
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
 cd build
 make install DESTDIR=$RPM_BUILD_ROOT
 
 # Rename glxinfo binary to make it not conflict with the one from glx-utils
 mv $RPM_BUILD_ROOT%{_bindir}/glxinfo{,_vgl}
-
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 
 %pre -n %{name}
@@ -162,6 +157,9 @@ getent group vglusers >/dev/null || groupadd -r vglusers
 
 
 %changelog
+* Fri Oct 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3.2-1
+- Version 2.3.2
+
 * Sun Feb 26 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.3-6
 - Add patches to add multilib support in vglrun
 - Add patches to fix paths in the scripts

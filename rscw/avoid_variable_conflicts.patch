@@ -1,0 +1,64 @@
+When compiled with newer GCC releases, the following errors are given:
+  error: ‘fmin’ redeclared as different kind of symbol
+  error: ‘fmax’ redeclared as different kind of symbol
+
+This patch renames the fmin and fmax variables to avoid the conflicts.
+diff -Nru TEMP.orig/rscw.c TEMP/rscw.c
+--- TEMP.orig/rscw.c	2012-05-17 14:21:31.852397299 -0400
++++ TEMP/rscw.c	2012-05-17 14:23:09.656117089 -0400
+@@ -114,8 +114,8 @@
+ int fmode=STRONGEST;
+ 
+ double Fmin=1, Fmax=SAMP/2-1;    /* absolute boundaries for modes 'strongest' and 'track' */
+-static double fmin=1;            /* boundaries for the frequency range; can move in mode 'track' */
+-static double fmax=SAMP/2-1;
++static double rscw_fmin=1;            /* boundaries for the frequency range; can move in mode 'track' */
++static double rscw_fmax=SAMP/2-1;
+ 
+ double search_carrier(int bri, int num)
+ {
+@@ -145,12 +145,12 @@
+       a = out[i]*out[i]+out[num-i]*out[num-i];
+       fftresult[i]=a;
+    }
+-   if (xpipe) fprintf(xpipe,"F0 %i %g %i\nF1 %g %g\n", num/2, 1.0/num*SAMP, fftresult_shmid, fmin, fmax);
++   if (xpipe) fprintf(xpipe,"F0 %i %g %i\nF1 %g %g\n", num/2, 1.0/num*SAMP, fftresult_shmid, rscw_fmin, rscw_fmax);
+ 
+    /* search the peak within the allowed range */
+    imax=-1; max=0;
+    avg=0;
+-   imin=fmin/df; imax=fmax/df;
++   imin=rscw_fmin/df; imax=rscw_fmax/df;
+    for (i=imin; i<=imax; i++) {
+       a = sqrt(fftresult[i]);
+       if (a>max) { iargmax=i; max=a; }
+@@ -168,14 +168,14 @@
+       if (dcd) {
+          /* if the carrier was found, that range can be made narrow */
+          f = iargmax*df;
+-         fmin = f-TRACKTOL;
+-         fmax = f+TRACKTOL;
++         rscw_fmin = f-TRACKTOL;
++         rscw_fmax = f+TRACKTOL;
+       } else {
+          /* otherwise, widen it, to allow for a drifting carrier */
+-         fmin = fmin - TRACKTOL;
+-         if (fmin<0) fmin=0;
+-         fmax = fmax + TRACKTOL;
+-         if (fmax>SAMP/2) fmax=SAMP/2;
++         rscw_fmin = rscw_fmin - TRACKTOL;
++         if (rscw_fmin<0) rscw_fmin=0;
++         rscw_fmax = rscw_fmax + TRACKTOL;
++         if (rscw_fmax>SAMP/2) rscw_fmax=SAMP/2;
+          /* and tell the caller that we didn't find the carrier */
+          f=-1;
+       }
+@@ -999,7 +999,7 @@
+       WPM, 
+       (fmode==TRACK) ? "track" : (fmode==STRONGEST) ? "strongest" : "fixed",
+       Fmin, Fmax);
+-   fmin=Fmin;  fmax=Fmax;
++   rscw_fmin=Fmin;  rscw_fmax=Fmax;
+ 
+    /* if desired, start the graphical display */
+    if (!getenv("DISPLAY") || strlen(getenv("DISPLAY"))==0) dox=0;

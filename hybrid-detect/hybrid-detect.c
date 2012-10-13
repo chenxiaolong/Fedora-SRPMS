@@ -1,273 +1,205 @@
-/* hybrid-detect:
- *
- * Detect which GPU in a hybrid graphics configuration should be
- * used
- *
- * Authored by:
- *   Alberto Milone
- *   Evan Broder
- *
- * Modified for Fedora by:
- *   Xiao-Long Chen
- * 
- * Copyright (C) 2011 Canonical Ltd
- * 
- * Based on code from ./hw/xfree86/common/xf86pciBus.c in xorg-server
- *
- * Copyright (c) 1997-2003 by The XFree86 Project, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- *
- * Except as contained in this notice, the name of the copyright holder(s)
- * and author(s) shall not be used in advertising or otherwise to promote
- * the sale, use or other dealings in this Software without prior written
- * authorization from the copyright holder(s) and author(s).
- *
- *
- * Build with `gcc -o hybrid-detect hybrid-detect.c $(pkg-config --cflags --libs pciaccess)`
- */
+/* Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to> */
 
-#define _GNU_SOURCE
+/* Uses some code written by Canonical (see the hybrid-detect source code
+ * in their nvidia-common package */
+
+#include <pciaccess.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <pciaccess.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
-#define PCI_CLASS_PREHISTORIC           0x00
-
-#define PCI_CLASS_DISPLAY               0x03
-
-#define PCI_CLASS_MULTIMEDIA            0x04
-#define PCI_SUBCLASS_MULTIMEDIA_VIDEO   0x00
-
-#define PCI_CLASS_PROCESSOR             0x0b
-#define PCI_SUBCLASS_PROCESSOR_COPROC   0x40
-
-#define PCIINFOCLASSES(c)                                               \
-    ( (((c) & 0x00ff0000) == (PCI_CLASS_PREHISTORIC << 16))             \
-      || (((c) & 0x00ff0000) == (PCI_CLASS_DISPLAY << 16))              \
-      || ((((c) & 0x00ffff00)                                           \
-           == ((PCI_CLASS_MULTIMEDIA << 16) | (PCI_SUBCLASS_MULTIMEDIA_VIDEO << 8)))) \
-      || ((((c) & 0x00ffff00)                                           \
-           == ((PCI_CLASS_PROCESSOR << 16) | (PCI_SUBCLASS_PROCESSOR_COPROC << 8)))) )
+#define PCI_CLASS_DISPLAY 0x03
 
 #define FILENAME "/var/lib/hybrid-detect/last_gfx_boot"
 
 static struct pci_slot_match match = {
-    PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY, 0
+  PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY, 0
 };
 
-/* Get the master link of an alternative */
-char* get_alternative_link(char *arch_path, char *pattern) {
-    char *temp;
+enum DRIVERS {
+  INTEL,
+  NVIDIA,
+  OPTIMUS
+};
 
-    /* Check if we're dealing with the Xorg configuration file for setting
-     * the ModulePath */
-    if (strcmp(arch_path, "00-gfx") == 0) {
-        /* Intel graphics card */
-        if (strcmp(pattern, "mesa") == 0) {
-            asprintf(&temp, "/etc/X11/modulepath.intel.conf");
-            return temp;
+enum DRIVERS hybrid_mode;
+static int      optimus_status = 0;
+static int last_optimus_status = 0;
+static int      main_vendor_id = 0;
+static int last_main_vendor_id = 0;
+static int      main_device_id = 0;
+static int last_main_device_id = 0;
+
+void get_devices() {
+  pci_system_init();
+
+  struct pci_device_iterator *iterator = pci_slot_match_iterator_create(&match);
+
+  if (iterator == NULL) {
+    exit(1);
+  }
+
+  int vga_device_count = 0;
+  int found_main_gfx = 0;
+
+  struct pci_device *info;
+  while ((info = pci_device_next(iterator)) != NULL) {
+    if ((info->device_class & 0x00ff0000) == (PCI_CLASS_DISPLAY << 16)) {
+      if (pci_device_is_boot_vga(info) && found_main_gfx == 0) {
+        if (info->vendor_id == 0x10de) {
+          hybrid_mode = NVIDIA;
         }
-        else if (strcmp(pattern, "nvidia") == 0) {
-            asprintf(&temp, "/etc/X11/modulepath.nvidia.conf");
-            return temp;
+        else if (info->vendor_id == 0x8086) {
+          hybrid_mode = INTEL;
         }
+        else {
+          fprintf(stderr, "Unknown graphics card: %x:%x\n",
+                  info->vendor_id, info->device_id);
+          exit(1);
+        }
+
+        found_main_gfx = 1;
+        main_vendor_id = info->vendor_id;
+        main_device_id = info->device_id;
+
+        /* If the bumblebee systemd daemon is enabled, then the system probably
+         * has optimus, and we don't need to scan anymore */
+        if (optimus_status == 1) {
+          break;
+        }
+      }
+
+      vga_device_count++;
     }
-    else if (strcmp(arch_path, "nvidia-lib") == 0 || 
-             strcmp(arch_path, "nvidia-lib64") == 0) {
-        /* Disable nVidia libraries by setting alternative to /dev/null
-         * mesa libraries are stored in /usr/lib{,64}, so the ld.so.conf.d
-         * files can just be disabled. */
-        if (strcmp(pattern, "nvidia") == 0) {
-            asprintf(&temp, "/usr/share/nvidia/%s.conf", arch_path);
-            return temp;
-        }
-        else if (strcmp(pattern, "mesa") == 0) {
-            asprintf(&temp, "/dev/null");
-            return temp;
-        }
+  }
+
+  /* If there's more than one graphics card, assume that the machine has
+   * optimus */
+  if (vga_device_count > 1) {
+    optimus_status = 1;
+  }
+
+  if (optimus_status == 1) {
+    hybrid_mode = OPTIMUS;
+  }
+}
+
+void last_boot_gfx() {
+  FILE *fptr = NULL;
+
+  fptr = fopen(FILENAME, "r");
+
+  if (fptr == NULL) {
+    fprintf(stderr, "Couldn't read from %s\n", FILENAME);
+
+    /* If file doesn't exist, then create it */
+    fprintf(stdout, "Creating %s\n", FILENAME);
+    fptr = fopen(FILENAME, "w");
+
+    if (fptr == NULL) {
+      fprintf(stderr, "Could not write to %s\n", FILENAME);
+      exit(1);
+    }
+
+    /* Write zero for the optimus status and vendor and device ID's and then
+     * continue */
+    fprintf(fptr, "%i:%x:%x\n", 0, 0x00, 0x00);
+    fflush(fptr);
+    fclose(fptr);
+    fptr = fopen(FILENAME, "r");
+  }
+
+  fscanf(fptr, "%i:%x:%x\n", &last_optimus_status, &last_main_vendor_id,
+                                                   &last_main_device_id);
+  fclose(fptr);
+}
+
+void write_ids() {
+  if (last_main_vendor_id != main_vendor_id ||
+      last_optimus_status != optimus_status) {
+    FILE *fptr;
+
+    fptr = fopen(FILENAME, "w");
+
+    if (fptr == NULL) {
+      fprintf(stderr, "Could not write to %s\n", FILENAME);
+      exit(1);
+    }
+
+    fprintf(fptr, "%i:%x:%x\n", optimus_status, main_vendor_id,
+                                                main_device_id);
+    fflush(fptr);
+    fclose(fptr);
+  }
+}
+
+void update_alternatives() {
+  if (last_main_vendor_id == 0 ||
+      last_main_vendor_id != main_vendor_id ||
+      last_optimus_status != optimus_status) {
+    fprintf(stdout, "Hybrid graphics mode was changed in the BIOS\n");
+  }
+
+  struct utsname uts;
+  if (uname(&uts) < 0) {
+    fprintf(stderr, "Failed to detect CPU architecture\n");
+    exit(1);
+  }
+
+  switch (hybrid_mode) {
+  case INTEL:
+  case OPTIMUS:
+    system("update-alternatives --set 00-gfx.conf /etc/X11/modulepath.intel.conf");
+
+    if (strcmp(uts.machine, "x86_64") == 0) {
+      system("update-alternatives --set nvidia-lib64.conf /dev/null");
+    }
+    system("update-alternatives --set nvidia-lib.conf /dev/null");
+    break;
+  case NVIDIA:
+    system("update-alternatives --set 00-gfx.conf /etc/X11/modulepath.nvidia.conf");
+
+    if (strcmp(uts.machine, "x86_64") == 0) {
+      if (access("/usr/share/nvidia/nvidia-lib.conf", F_OK) == 0) {
+        /* Multilib nVidia libraries are installed */
+        system("update-alternatives --set nvidia-lib.conf /usr/share/nvidia/nvidia-lib.conf");
+      }
+      system("update-alternatives --set nvidia-lib64.conf /usr/share/nvidia/nvidia-lib64.conf");
     }
     else {
-        return NULL;
+      system("update-alternatives --set nvidia-lib.conf /usr/share/nvidia/nvidia-lib.conf");
     }
+    break;
+  }
+}
+
+void check_bumblebee() {
+  /* Check if the bumblebee daemon is enabled */
+  int exit_status = system("systemctl is-enabled bumblebeed.service >/dev/null");
+  if (exit_status == -1) {
+    fprintf(stderr, "Failed to execute systemctl\n");
+    exit(1);
+  }
+  else if (exit_status == 0) {
+    optimus_status = 1;
+  }
 }
 
 int main(int argc, char *argv[]) {
+  /* Must be run as root */
+  if (getuid() != 0) {
+    fprintf(stderr, "%s must be run as root\n", argv[0]);
+    exit(1);
+  }
 
-    /* Check root privileges */
-    uid_t uid=getuid();
-    if (uid != 0) {
-        fprintf(stderr, "Error: please run this program as root\n");
-        exit(1);
-    }
-    
-    pci_system_init();
+  last_boot_gfx();
+  check_bumblebee();
+  get_devices();
+  write_ids();
+  update_alternatives();
 
-    struct pci_device_iterator *iter = pci_slot_match_iterator_create(&match);
-    if (!iter)
-        return 1;
-
-    FILE *pfile = NULL;
-    int last_vendor = 0;
-    int last_device = 0;
-    char *arch_path = NULL;
-
-    /* Read from last boot gfx */
-    pfile = fopen(FILENAME, "r");
-    if (pfile == NULL) {
-        fprintf(stderr, "I couldn't open %s for reading.\n", FILENAME);
-        /* Create the file for the 1st time */
-        pfile = fopen(FILENAME, "w");
-        printf("Create %s for the 1st time\n", FILENAME);
-        if (pfile == NULL) {
-            fprintf(stderr, "I couldn't open %s for writing.\n",
-                    FILENAME);
-            exit(1);
-        }
-        fprintf(pfile, "%x:%x\n", 0x0, 0x0);
-        fflush(pfile);
-        fclose(pfile);
-        /* Try again */
-        pfile = fopen(FILENAME, "r");
-    }
-    fscanf(pfile, "%x:%x\n", &last_vendor, &last_device);
-    fclose(pfile);
-
-    struct pci_device *info;
-    while ((info = pci_device_next(iter)) != NULL) {
-        if (PCIINFOCLASSES(info->device_class) &&
-            pci_device_is_boot_vga(info)) {
-            //printf("%x:%x\n", info->vendor_id, info->device_id);
-            char *driver = NULL;
-            if (info->vendor_id == 0x10de) {
-                driver = "nvidia";
-            }
-            else if (info->vendor_id == 0x8086) {
-                driver = "mesa";
-            }
-            else {
-                fprintf(stderr, "No hybrid graphics cards detected\n");
-                break;
-            }
-
-            pfile = fopen(FILENAME, "w");
-            if (pfile == NULL) {
-                fprintf(stderr, "I couldn't open %s for writing.\n",
-                        FILENAME);
-                exit(1);
-            }
-            fprintf(pfile, "%x:%x\n", info->vendor_id, info->device_id);
-            fflush(pfile);
-            fclose(pfile);
-
-            /* Change the login a little bit:
-             * In Ubuntu's version, last_vendor is checked to see if it's
-             * NOT 0, then checked to see if it matches the current vendor
-             * ID. The problem is that last_vendor defaults to 0, which
-             * means that update-alternatives won't be run if last_gfx_boot
-             * is missing or empty (initial installation). However,
-             * update-alternatives needs to run because the graphics card
-             * used during the installation could be either the Intel
-             * graphics card or the nVidia graphics card.
-             *
-             * This can altered to run update-alternatives if last_vendor
-             * equals 0 (last_gfx_boot is missing or empty) OR if
-             * last_vendor does not match the current vendor ID. */
-            if (last_vendor == 0 || last_vendor != info->vendor_id) {
-                printf("Gfx was changed in the BIOS\n");
-
-                struct utsname uts;
-                if (uname(&uts) < 0) {
-                    fprintf(stderr, "Failed to detect CPU architecture\n");
-                    break;
-                }
-                if (strcmp(uts.machine, "x86_64") == 0) {
-                    arch_path = "nvidia-lib64";
-                }
-                else if (strcmp(uts.machine, "i686") == 0) {
-                    arch_path = "nvidia-lib";
-                }
-                else {
-                    fprintf(stderr,
-                            "%s is not supported for hybrid graphics\n",
-                            uts.machine);
-                    break;
-                }
-
-                char *alternative = NULL;
-                alternative = get_alternative_link(arch_path, driver);
-
-                if (alternative == NULL) {
-                    fprintf(stderr, "Error: no alternative found\n");
-                    break;
-                }
-                else {
-                    /* Set the alternative */
-                    printf("Select %s for %s.conf\n", alternative, arch_path);
-                    char command[200];
-
-                    /* Set alternative for nVidia libraries */
-                    sprintf(command, "update-alternatives --set %s.conf %s",
-                            arch_path, alternative);
-                    system(command);
-                    free(alternative);
-
-                    /* Set alternative for nvidia libraries (xorg-x11-drv-nvidia-libs) */
-                    if (strcmp(arch_path, "nvidia-lib64") == 0 &&
-                        access("/usr/share/nvidia/nvidia-lib.conf", F_OK) == 0) {
-                        /* If on 64 bit system and 32 bit libraries are installed,
-                         * then also update the alternatives for the 32 bit
-                         * libraries. */
-                        alternative = get_alternative_link("nvidia-lib", driver);
-                        printf("Select %s for nvidia-lib.conf\n", alternative);
-
-                        sprintf(command, "update-alternatives --set nvidia-lib.conf %s",
-                                alternative);
-                        system(command);
-                        free(alternative);
-                    }
-
-                    /* Set alternative for Xorg configuration file */
-                    alternative = NULL;
-                    alternative = get_alternative_link("00-gfx", driver);
-                    printf("Select %s for 00-gfx.conf\n", alternative);
-
-                    sprintf(command, "update-alternatives --set 00-gfx.conf %s",
-                            alternative);
-                    system(command);
-                    free(alternative);
-
-                    /* call ldconfig */
-                    system("LDCONFIG_NOTRIGGER=y ldconfig");
-
-                }
-            }
-            else {
-                printf("No gfx change\n");
-                break;
-            }
-            break;
-        }
-    }
-    pci_iterator_destroy(iter);
-    return 0;
+  system("LDCONFIG_NOTRIGGER=y ldconfig");
 }

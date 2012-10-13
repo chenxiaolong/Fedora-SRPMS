@@ -1,5 +1,7 @@
+# Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+
 Name:		hybrid-detect
-Version:	1.0
+Version:	2.0
 Release:	1%{?dist}
 Summary:	Utility for automatic graphics switching on systems with Intel and nVidia graphics
 
@@ -40,7 +42,6 @@ gcc -o hybrid-detect hybrid-detect.c $(pkg-config --cflags --libs pciaccess)
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
 install -m 0755 -d               $RPM_BUILD_ROOT%{_sbindir}/
 install -m 0755    hybrid-detect $RPM_BUILD_ROOT%{_sbindir}/
 
@@ -67,11 +68,9 @@ touch $RPM_BUILD_ROOT%{_sysconfdir}/ld.so.conf.d/nvidia-lib64.conf
 %endif
 
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-
 %post
+rm %{_sharedstatedir}/hybrid-detect/last_gfx_boot &>/dev/null || :
+
 # Install alternative for Xorg configuration file
 %{_sbindir}/update-alternatives --install \
   %{_sysconfdir}/X11/xorg.conf.d/00-gfx.conf \
@@ -152,5 +151,12 @@ fi
 
 
 %changelog
+* Sat Oct 13 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 2.0-1
+- Rewrote hybrid-detect
+  - Add code for detecting optimus/bumblebee so xorg-x11-drv-nvidia,
+    akmod-nvidia, hybrid-detect, and bumblebee can all coexist without issues.
+  - Allows all three hybrid graphics modes to work on Lenovo ThinkPad and Dell
+    Precision laptops (Intel only, NVIDIA only, and Optimus)
+
 * Fri May 04 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1.0-1
 - Initial release

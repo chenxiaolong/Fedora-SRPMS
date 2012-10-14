@@ -39,7 +39,8 @@ sed \
 - Patched to support virtual display \\
 " \
   -e '1 i \
-Patch100: xserver-xorg-video-intel-2.20.9_virtual_crtc.patch' \
+Patch100: xserver-xorg-video-intel-2.20.9_virtual_crtc.patch \
+Provides: xorg-x11-drv-intel-virtual-crtc' \
   -e '/^%setup/ a \
 %patch100 -p1 -b .virtual-crtc' \
   < xorg-x11-drv-intel.spec \

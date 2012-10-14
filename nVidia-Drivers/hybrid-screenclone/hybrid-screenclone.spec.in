@@ -1,0 +1,55 @@
+# Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+
+%define _full_date @FULLDATE@
+%define _git_date @GITDATE@
+%define _git_commit @GITCOMMIT@
+
+Name:		hybrid-screenclone
+Version:	%{_git_date}
+Release:	1.git%{_git_commit}%{?dist}
+Summary:	Clone a single Xinerama screen to another X server in userspace
+
+Group:		User Interface/X
+License:	Freely redistributable without restriction
+URL:		https://github.com/liskin/hybrid-screenclone
+Source0:	hybrid-screenclone-%{_git_date}-git%{_git_commit}.tar.xz
+
+Requires:	xorg-x11-drv-intel-virtual-crtc
+
+%description
+This is a reimplementation of hybrid-windump with the opposite use-case: doing
+all rendering using the integrated intel card and using the additional card just
+to get more outputs (e.g. a triple-head with ThinkPad T420). As such, it uses
+the DAMAGE extension to avoid unnecessary redraws and the RECORD extension to
+capture mouse movements, which are translated to mouse movements on the
+destination X server.
+
+
+%prep
+%setup -q -n %{name}-%{_git_date}-git%{_git_commit}
+
+sed -i \
+  -e '/LDLIBS/ s/$/ -lXfixes -lXext/' \
+  -e '/CXXFLAGS/d' \
+  Makefile
+
+
+%build
+CXXFLAGS='-std=c++0x %{optflags}' make %{?_smp_mflags}
+
+
+%install
+install -dm755 $RPM_BUILD_ROOT%{_sbindir}/
+install -m755 screenclone $RPM_BUILD_ROOT%{_sbindir}/
+
+
+%files
+%doc README.markdown
+%doc xorg.conf.nvidia
+%{_sbindir}/screenclone
+
+
+%changelog
+* %{_full_date} Fedora-SRPMS Autobuilder <Fedora-SRPMS@github> - %{_git_date}-1.git%{_git_commit}
+- Git checkout from %{_full_date}
+- Commit: %{_git_commit}

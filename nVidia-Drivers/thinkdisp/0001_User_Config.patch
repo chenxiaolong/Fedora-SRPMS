@@ -1,0 +1,115 @@
+diff -Nru thinkdisp-1.3.1.orig/config/config.ini thinkdisp-1.3.1/config/config.ini
+--- thinkdisp-1.3.1.orig/config/config.ini	2012-10-14 00:44:48.192095330 -0400
++++ thinkdisp-1.3.1/config/config.ini	2012-10-14 00:57:34.314965894 -0400
+@@ -11,6 +11,3 @@
+ two=1024x768
+ #three=
+ #four=
+-
+-[First Run]
+-perm_fixed=False
+diff -Nru thinkdisp-1.3.1.orig/scripts/thinkdisp-fix-permissions thinkdisp-1.3.1/scripts/thinkdisp-fix-permissions
+--- thinkdisp-1.3.1.orig/scripts/thinkdisp-fix-permissions	2012-10-14 00:44:48.191095329 -0400
++++ thinkdisp-1.3.1/scripts/thinkdisp-fix-permissions	1969-12-31 19:00:00.000000000 -0500
+@@ -1,9 +0,0 @@
+-#!/bin/bash
+-
+-sudo chown root /usr/bin/killdisp #make owner root
+-sudo chmod ug+s /usr/bin/killdisp #SetUID and setGID
+-sudo chmod o+x /usr/bin/killdisp #make executable by "other" group
+-
+-
+-#set permissions for config file
+-sudo chown $SUDO_USER /etc/thinkdisp/config.ini
+diff -Nru thinkdisp-1.3.1.orig/setup.py thinkdisp-1.3.1/setup.py
+--- thinkdisp-1.3.1.orig/setup.py	2012-10-14 00:44:48.193095330 -0400
++++ thinkdisp-1.3.1/setup.py	2012-10-14 00:58:09.291934889 -0400
+@@ -9,9 +9,8 @@
+       url='http://sagark.org/thinkdisp/',
+       packages=['thinkdisputil'],
+       scripts=['thinkdisp'],
+-      data_files=[('/etc/thinkdisp', ['config/config.ini']),
++      data_files=[('/usr/share/thinkdisp', ['config/config.ini']),
+                   ('/etc/xdg/autostart', ['thinkdisp.desktop']),
+-                  ('/usr/bin', ['scripts/killdisp']),
+-                  ('/usr/bin', ['scripts/thinkdisp-fix-permissions'])
++                  ('/usr/bin', ['scripts/killdisp'])
+                  ]
+      )
+diff -Nru thinkdisp-1.3.1.orig/thinkdisp thinkdisp-1.3.1/thinkdisp
+--- thinkdisp-1.3.1.orig/thinkdisp	2012-10-14 00:44:48.193095330 -0400
++++ thinkdisp-1.3.1/thinkdisp	2012-10-14 01:05:51.795797167 -0400
+@@ -9,6 +9,7 @@
+ import time
+ import thread
+ import os
++import shutil
+ 
+ """Future Features:
+ switching out the xorg.conf.nvidia so that optirun can actually be used properly
+@@ -270,18 +271,11 @@
+ 
+ 
+ if __name__ == "__main__":
+-    # prevents the weird gksudo lockup on boot
+-    time.sleep(5)
++    if not os.path.isfile(os.path.expanduser("~") + '/.thinkdisp.ini'):
++        shutil.copyfile('/usr/share/thinkdisp/sample.ini', os.path.expanduser("~") + '/.thinkdisp.ini')
+ 
+-    ###ADD CODE HERE TO FIX PERMISSIONS ON FIRST RUN
+     tmpUconf = UserConfig()
+-    if tmpUconf.perm_fixed not in "True":
+-        print("Since this appears to be the first run, set permissions to prevent"
+-                " having to ask for sudo pass every time")
+-        subprocess.call(["gksudo", "thinkdisp-fix-permissions"])
+-        tmpUconf.done_first_run()
+ 
+-   	#ensures that bbswitch dkms module is inserted and usable
+     subprocess.call(["killdisp"])
+ 
+     # start indicator
+diff -Nru thinkdisp-1.3.1.orig/thinkdisputil/util.py thinkdisp-1.3.1/thinkdisputil/util.py
+--- thinkdisp-1.3.1.orig/thinkdisputil/util.py	2012-10-14 00:44:48.193095330 -0400
++++ thinkdisp-1.3.1/thinkdisputil/util.py	2012-10-14 00:57:19.932978372 -0400
+@@ -1,19 +1,16 @@
+ import ConfigParser
+ from custom_res import CustomResolution
++from os.path import expanduser
+ 
+ class UserConfig(object):
+     """A Module to load user configs and act on them"""
+     def __init__(self):
+         self.config = ConfigParser.RawConfigParser()
+-        self.config.read('/etc/thinkdisp/config.ini')
++        self.config.read(expanduser("~") + '/.thinkdisp.ini')
+         self.res = self.config.get("User Defaults", 'resolution')
+         self.side = self.config.get("User Defaults", 'side')
+         self.rotation = self.config.get("User Defaults", 'rotation')
+         self.custom_res = self.config.items("Custom Resolutions")
+-        try: #take care of upgrade case where perm_fixed doesn't exist
+-            self.perm_fixed = self.config.get("First Run", 'perm_fixed')
+-        except:
+-            self.perm_fixed = "False"
+         #print(res)
+         #print(side)
+         #print(custom_res)
+@@ -38,18 +35,9 @@
+         self.config.set('User Defaults', 'resolution', settingsdict["RESOLUTION"])
+         self.config.set('User Defaults', 'side', settingsdict["SIDE"])
+         self.config.set('User Defaults', 'rotation', settingsdict["ROTATION"])
+-        setfile = file('/etc/thinkdisp/config.ini', 'w')
++        setfile = file(expanduser("~") + '/.thinkdisp.ini', 'w')
+         self.config.write(setfile)
+    
+-    def done_first_run(self):
+-        try: # try to add section, catch the exception if it already exists
+-            self.config.add_section("First Run")
+-        except:
+-            pass
+-        self.config.set("First Run", "perm_fixed", "True")
+-        setfile = file('/etc/thinkdisp/config.ini', 'w')
+-        self.config.write(setfile)
+-
+ if __name__ == '__main__':
+     a = UserConfig()
+     print(a.initialize_customs())

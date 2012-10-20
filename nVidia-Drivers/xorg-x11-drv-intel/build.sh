@@ -2,6 +2,8 @@
 
 # Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
 
+# Patches from https://github.com/liskin/patches/tree/master/hacks
+
 FEDORA_VER=$(sed -n 's/%fedora[ \t]*\(.*\)/\1/p' /etc/rpm/macros.dist)
 
 if [ ! -d xorg-x11-drv-intel ]; then
@@ -39,14 +41,14 @@ sed \
 - Patched to support virtual display \\
 " \
   -e '1 i \
-Patch100: xserver-xorg-video-intel-2.20.9_virtual_crtc.patch \
+Patch100: xserver-xorg-video-intel-2.20.10_virtual_crtc.patch \
 Provides: xorg-x11-drv-intel-virtual-crtc' \
   -e '/^%setup/ a \
 %patch100 -p1 -b .virtual-crtc' \
   < xorg-x11-drv-intel.spec \
   > build.spec
 
-cp ../../xserver-xorg-video-intel-2.20.9_virtual_crtc.patch .
+cp ../../xserver-xorg-video-intel-2.20.10_virtual_crtc.patch .
 #spectool -g build.spec
 
 rpmbuild -bs --define "_sourcedir $(pwd)" --define "_srcrpmdir $(pwd)" build.spec

@@ -14,6 +14,14 @@ License:	Freely redistributable without restriction
 URL:		https://github.com/liskin/hybrid-screenclone
 Source0:	hybrid-screenclone-%{_git_date}-git%{_git_commit}.tar.xz
 
+BuildRequires:	pkgconfig(x11)
+BuildRequires:	pkgconfig(xcursor)
+BuildRequires:	pkgconfig(xdamage)
+BuildRequires:	pkgconfig(xext)
+BuildRequires:	pkgconfig(xfixes)
+BuildRequires:	pkgconfig(xinerama)
+BuildRequires:	pkgconfig(xtst)
+
 Requires:	xorg-x11-drv-intel-virtual-crtc
 
 %description

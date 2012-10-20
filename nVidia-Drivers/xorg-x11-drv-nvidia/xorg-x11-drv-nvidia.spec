@@ -6,7 +6,7 @@
 
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
-Version:         304.51
+Version:         304.60
 Release:         100%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
@@ -407,6 +407,12 @@ fi ||:
 
 
 %changelog
+* Fri Oct 19 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:304.60-100
+- Merge RPMFusion changes
+
+* Thu Oct 18 2012 Leigh Scott <leigh123linux@googlemail.com> - 1:304.60-1
+- Update to 304.60
+
 * Tue Oct 09 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:304.51-100
 - Merge RPMFusion changes
 

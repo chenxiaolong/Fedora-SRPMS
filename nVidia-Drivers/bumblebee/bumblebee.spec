@@ -2,7 +2,7 @@
 
 Name:		bumblebee
 Version:	3.0.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	A project aiming to support NVIDIA Optimus technology under Linux
 
 Group:		System Environment/Base
@@ -59,7 +59,11 @@ full changelog could be found at http://bumblebee-project.org/release-notes-3.0
 %else
   CONF_LDPATH_NVIDIA=%{_libdir}/nvidia \
 %endif
-  CONF_MODPATH_NVIDIA=%{_libdir}/xorg/modules/extensions/nvidia,%{_libdir}/xorg/modules
+%if 0
+  # Uncomment to make package compatible with RPMFusion's NVIDIA driver
+  #CONF_MODPATH_NVIDIA=%{_libdir}/xorg/modules/extensions/nvidia,%{_libdir}/xorg/modules
+%endif
+  CONF_MODPATH_NVIDIA=%{_libdir}/nvidia-xorg,%{_libdir}/xorg/modules
 
 make %{?_smp_mflags}
 
@@ -126,6 +130,9 @@ fi
 
 
 %changelog
+* Fri Oct 19 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 3.0.1-3
+- xorg-x11-drv-nvidia's modules were moved to %%{libdir}/nvidia-xorg
+
 * Sat Oct 13 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 3.0.1-2
 - Fix the ModulePath when using the proprietary NVIDIA driver
 

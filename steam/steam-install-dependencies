@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+
+DIR=@DIR@
+
+if ! find ~/Steam/${DIR}/ -type f -name '*.so' >/dev/null; then
+  echo "Please run Steam once first."
+  exit 1
+fi
+
+unset LANG
+
+LINKED_LIBS=($(find ~/Steam/${DIR}/ -type f -name '*.so' | \
+                 /usr/lib/rpm/find-requires              | \
+                 grep -v '(.*)'                          | \
+                 uniq                                    | \
+                 sort))
+
+for ((i=0;i<${#LINKED_LIBS[@]};i++)); do
+  if [ -f ~/Steam/${DIR}/${LINKED_LIBS[${i}]} ]; then
+    LINKED_LIBS[${i}]=""
+  fi
+done
+
+sudo yum install ${LINKED_LIBS[@]}

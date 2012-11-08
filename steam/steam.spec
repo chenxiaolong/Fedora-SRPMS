@@ -5,7 +5,7 @@
 
 Name:		steam
 Version:	1.0.0.14
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Installer for the Beta of the Steam software distribution service
 
 Group:		Amusements/Games
@@ -13,6 +13,7 @@ License:	Redistributable, no modification permitted
 URL:		http://www.steampowered.com/
 Source0:	http://media.steampowered.com/client/installer/steam.deb
 Source1:	add-requires.sh
+Source2:	steam-install-dependencies
 
 Patch0:		0001_Remove_Ubuntu_specific_stuff.patch
 
@@ -70,6 +71,13 @@ mv $RPM_BUILD_ROOT%{_docdir}/steam{,-%{version}}/
 # Specific to Ubuntu's update manager
 rm $RPM_BUILD_ROOT%{_libdir}/steam/steam-install-notify
 
+install -dm755 $RPM_BUILD_ROOT%{_sbindir}/
+DIR=$(sed -n 's/^DIR="\(.*\)"$/\1/p' %{SOURCE1})
+sed "s/@DIR@/${DIR}/g" \
+  < %{SOURCE2} \
+  > $RPM_BUILD_ROOT%{_sbindir}/steam-install-dependencies
+chmod 755 $RPM_BUILD_ROOT%{_sbindir}/steam-install-dependencies
+
 
 %post
 touch --no-create %{_datadir}/icons/hicolor/ &>/dev/null || :
@@ -88,6 +96,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor/ &>/dev/null || :
 %doc %{_docdir}/steam-%{version}/
 %{_bindir}/steam
 %dir %{_libdir}/steam/
+%{_sbindir}/steam-install-dependencies
 %{_libdir}/steam/bootstraplinux_ubuntu12_32.tar.xz
 %{_datadir}/applications/steam.desktop
 %{_datadir}/icons/hicolor/*/apps/steam.png
@@ -96,6 +105,9 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor/ &>/dev/null || :
 
 
 %changelog
+* Thu Nov 08 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1.0.0.14-2
+- Add script to install dependencies
+
 * Wed Nov 07 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1.0.0.14-1
 - Initial release
 - Version 1.0.0.14

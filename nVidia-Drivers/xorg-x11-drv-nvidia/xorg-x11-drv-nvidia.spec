@@ -1,4 +1,5 @@
 %global        nvidialibdir      %{_libdir}/nvidia
+%global        nvidiaxorgdir     %{_libdir}/nvidia/xorg
 %global        ignoreabi         0
 
 %global	       debug_package %{nil}
@@ -6,8 +7,8 @@
 
 Name:            xorg-x11-drv-nvidia
 Epoch:           1
-Version:         304.60
-Release:         101%{?dist}
+Version:         304.64
+Release:         100%{?dist}
 Summary:         NVIDIA's proprietary display driver for NVIDIA graphic cards
 
 Group:           User Interface/X Hardware Support
@@ -191,14 +192,18 @@ install -p -m 0755 lib*.so.%{version}          $RPM_BUILD_ROOT%{nvidialibdir}/
 install -p -m 0755 libOpenCL.so.1.0.0          $RPM_BUILD_ROOT%{nvidialibdir}/
 install -p -m 0755 tls/lib*.so.%{version}      $RPM_BUILD_ROOT%{nvidialibdir}/tls/
 
+#
+mkdir -p $RPM_BUILD_ROOT%{_libdir}/xorg/modules/drivers/
+mkdir -p $RPM_BUILD_ROOT%{nvidiaxorgdir}
+
 # .. but some in a different place
-install -m 0755 -d $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
-install -m 0755 -d $RPM_BUILD_ROOT%{_libdir}/xorg/modules/drivers/
+install -m 0755 -d $RPM_BUILD_ROOT%{nvidiaxorgdir}
+install -m 0755 -d $RPM_BUILD_ROOT%{nvidiaxorgdir}
 rm -f $RPM_BUILD_ROOT%{nvidialibdir}/lib{nvidia-wfb,glx,vdpau*}.so.%{version}
 
 # Finish up the special case libs
-install -p -m 0755 libnvidia-wfb.so.%{version} $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
-install -p -m 0755 libglx.so.%{version}        $RPM_BUILD_ROOT%{_libdir}/nvidia-xorg/
+install -p -m 0755 libnvidia-wfb.so.%{version} $RPM_BUILD_ROOT%{nvidiaxorgdir}
+install -p -m 0755 libglx.so.%{version}        $RPM_BUILD_ROOT%{nvidiaxorgdir}
 install -p -m 0755 nvidia_drv.so               $RPM_BUILD_ROOT%{_libdir}/xorg/modules/drivers/
 install -p -m 0755 libvdpau*.so.%{version}     $RPM_BUILD_ROOT%{_libdir}/vdpau/
 install -p -m 0644 libXvMCNVIDIA.a             $RPM_BUILD_ROOT%{nvidialibdir}/
@@ -364,9 +369,9 @@ fi ||:
 %{_bindir}/nvidia-cuda-proxy-server
 #{_sbindir}/nvidia-config-display
 # Xorg libs that do not need to be multilib
-%dir %{_libdir}/nvidia-xorg/
+%dir %{nvidiaxorgdir}
+%{nvidiaxorgdir}/*.so*
 %{_libdir}/xorg/modules/drivers/nvidia_drv.so
-%{_libdir}/nvidia-xorg/*.so*
 #/no_multilib
 %{_datadir}/pixmaps/*.png
 %{_mandir}/man1/nvidia-smi.*
@@ -407,6 +412,11 @@ fi ||:
 
 
 %changelog
+* Fri Nov 09 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:304.64-100
+- Version 304.64
+- Merge RPMFusion's changes
+  - Move nvidia xorg libraries to _libdir/nvidia/xorg - rfbz#2264
+
 * Fri Oct 19 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 1:304.60-101
 - Move Xorg modules to %%{libdir}/nvidia-xorg/
   - It is uncertain whether Xorg reads loads .so files from the ModulePath

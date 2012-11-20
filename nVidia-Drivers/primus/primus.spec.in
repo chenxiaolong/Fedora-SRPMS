@@ -1,0 +1,85 @@
+# Written by: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+
+%define _full_date @FULLDATE@
+%define _git_date @GITDATE@
+%define _git_commit @GITCOMMIT@
+
+Name:		primus-source
+Version:	%{_git_date}
+Release:	1.git%{_git_commit}%{?dist}
+Summary:	Low-overhead OpenGL offloading library
+
+Group:		System Environment/Libraries
+License:	Freely redistributable without restriction
+URL:		https://github.com/amonakov/primus
+Source0:	primus-%{_git_date}-git%{_git_commit}.tar.xz
+
+BuildRequires:	mesa-libGL-devel
+
+%description
+Primus is a shared library that provides OpenGL and GLX APIs and implements
+low-overhead local-only client-side OpenGL offloading via GLX forking, similar
+to VirtualGL. It intercepts GLX calls and redirects GL rendering to a secondary
+X display, presumably driven by a faster GPU. On swapping buffers, rendered
+contents are read back using a PBO and copied onto the drawable it was supposed
+to be rendered on in the first place.
+
+
+# Hack to allow primus to be noarch and the primus-libs to be multilib
+%package -n primus
+Summary:	Low-overhead OpenGL offloading library
+Group:		System Environment/Libraries
+
+Requires:	primus-libs = %{version}-%{release}
+Requires:	bumblebee
+
+%description -n primus
+Primus is a shared library that provides OpenGL and GLX APIs and implements
+
+
+%package -n primus-libs
+Summary:	Shared libraries for primus
+Group:		System Environment/Libraries
+
+%description -n primus-libs
+Primus is a shared library that provides OpenGL and GLX APIs and implements
+low-overhead local-only client-side OpenGL offloading via GLX forking, similar
+to VirtualGL. It intercepts GLX calls and redirects GL rendering to a secondary
+X display, presumably driven by a faster GPU. On swapping buffers, rendered
+contents are read back using a PBO and copied onto the drawable it was supposed
+to be rendered on in the first place.
+
+
+%prep
+%setup -q -n primus-%{_git_date}-git%{_git_commit}
+
+
+%build
+export CXXFLAGS='%{optflags}'
+export LIBDIR=%{_lib}
+export PRIMUS_libGLa=%{_libdir}/nvidia/libGL.so.1
+make %{?_smp_mflags}
+
+
+%install
+install -dm755 $RPM_BUILD_ROOT%{_bindir}/
+install -m755 primusrun $RPM_BUILD_ROOT%{_bindir}/
+
+install -dm755 $RPM_BUILD_ROOT%{_libdir}/primus/
+install -m755 %{_lib}/libGL.so.1 $RPM_BUILD_ROOT%{_libdir}/primus/
+
+
+%files -n primus
+%doc LICENSE.txt README.md technotes.md
+%{_bindir}/primusrun
+
+
+%files -n primus-libs
+%dir %{_libdir}/primus/
+%{_libdir}/primus/libGL.so.1
+
+
+%changelog
+* %{_full_date} Fedora-SRPMS Autobuilder <Fedora-SRPMS@github> - %{_git_date}-1.git%{_git_commit}
+- Git checkout from %{_full_date}
+- Commit: %{_git_commit}

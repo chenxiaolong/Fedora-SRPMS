@@ -2,13 +2,15 @@
 
 Name:		bumblebee
 Version:	3.0.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	A project aiming to support NVIDIA Optimus technology under Linux
 
 Group:		System Environment/Base
 License:	GPLv3
 URL:		http://bumblebee-project.org/
 Source0:	https://github.com/downloads/Bumblebee-Project/Bumblebee/bumblebee-%{version}.tar.gz
+
+Patch0:		0001_Do_not_read_xorg.conf.d.patch
 
 BuildRequires:	help2man
 BuildRequires:	systemd-units
@@ -50,6 +52,8 @@ full changelog could be found at http://bumblebee-project.org/release-notes-3.0
 
 %prep
 %setup -q
+
+%patch0 -p1 -b .no-xorg.conf.d
 
 
 %build
@@ -126,6 +130,9 @@ fi
 
 
 %changelog
+* Tue Dec 11 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 3.0.1-5
+- Do not read from /etc/X11/xorg.conf.d/
+
 * Tue Dec 11 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 3.0.1-4
 - Xorg modules are now in %%{libdir}/nvidia/xorg in the RPMFusion package
 

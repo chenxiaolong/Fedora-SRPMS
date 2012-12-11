@@ -14,6 +14,8 @@ License:	Freely redistributable without restriction
 URL:		https://github.com/amonakov/primus
 Source0:	primus-%{_git_date}-git%{_git_commit}.tar.xz
 
+Patch0:		0001-Use-Fedora-specific-library-paths.patch
+
 BuildRequires:	mesa-libGL-devel
 
 %description
@@ -52,6 +54,8 @@ to be rendered on in the first place.
 
 %prep
 %setup -q -n primus-%{_git_date}-git%{_git_commit}
+
+%patch0 -p1 -b .fedora
 
 
 %build

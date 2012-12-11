@@ -1,0 +1,30 @@
+From e8f8173d2dfba412b41ee8fa09a86b36f14e3a09 Mon Sep 17 00:00:00 2001
+From: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+Date: Tue, 11 Dec 2012 15:31:39 -0500
+Subject: [PATCH] Use Fedora-specific library paths
+
+---
+ primusrun | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/primusrun b/primusrun
+index 0b349e5..6076155 100755
+--- a/primusrun
++++ b/primusrun
+@@ -19,11 +19,11 @@
+ # export PRIMUS_libGLd=${PRIMUS_libGLd:-'/usr/$LIB/libGL.so.1'}
+ 
+ # Directory containing primus libGL
+-PRIMUS_libGL=${PRIMUS_libGL:-$(dirname `readlink -ne $0`)/'$LIB'}
++PRIMUS_libGL=${PRIMUS_libGL:-/usr/'$LIB'/primus}
+ 
+ # On some distributions, e.g. on Gentoo, libnvidia-tls.so is not available
+ # in default search paths.  Add its path manually after the primus library
+-# PRIMUS_libGL=${PRIMUS_libGL}:/usr/\$LIB/opengl/nvidia/lib
++PRIMUS_libGL=${PRIMUS_libGL}:/usr/\$LIB/nvidia:/usr/\$LIB/nvidia/tls
+ 
+ # Mesa drivers need a few symbols to be visible
+ # export PRIMUS_LOAD_GLOBAL=${PRIMUS_LOAD_GLOBAL:-'libglapi.so.0'}
+-- 
+1.8.0.1
+

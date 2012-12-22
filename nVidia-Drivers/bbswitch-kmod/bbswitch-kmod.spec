@@ -3,7 +3,7 @@
 %define buildforkernels akmod
 
 Name:		bbswitch-kmod
-Version:	0.4.2
+Version:	0.5
 Release:	1%{?dist}
 Summary:	A Kernel Module to power on or off the dedicated nVidia card
 
@@ -89,6 +89,9 @@ done
 
 
 %changelog
+* Fri Dec 21 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.5-1
+- Version 0.5
+
 * Fri Oct 12 2012 Xiao-Long Chen <chenxiaolong@cxl.epac.to> - 0.4.2-1
 - Initial release
 - Version 0.4.2

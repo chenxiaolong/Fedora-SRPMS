@@ -1,0 +1,11 @@
+--- a/rime.xml
++++ b/rime.xml
+@@ -3,7 +3,7 @@
+ <component>
+ 	<name>com.googlecode.rimeime.Rime</name>
+ 	<description>Rime Component</description>
+-	<exec>/usr/lib/ibus-rime/ibus-engine-rime --ibus</exec>
++	<exec>/usr/libexec/ibus-engine-rime --ibus</exec>
+ 	<version>1.0</version>
+ 	<author>GONG Chen &lt;chen.sst@gmail.com&gt;</author>
+ 	<license>GPL</license>
